@@ -340,7 +340,7 @@ def get_dashboard_data(db_path):
                 s.country,
                 s.city
             FROM login_attempts la
-            LEFT JOIN sessions s ON la.ip_address = s.ip_address
+            LEFT JOIN sessions s ON la.session_id = s.session_id
             WHERE la.timestamp > datetime('now', '-7 days')
             GROUP BY la.ip_address
             ORDER BY attempts DESC
@@ -355,7 +355,7 @@ def get_dashboard_data(db_path):
                 la.session_id, la.attempt_number, la.user_agent,
                 s.country
             FROM login_attempts la
-            LEFT JOIN sessions s ON la.ip_address = s.ip_address
+            LEFT JOIN sessions s ON la.session_id = s.session_id
             ORDER BY la.timestamp DESC
             LIMIT 50
         ''')
