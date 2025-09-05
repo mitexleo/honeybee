@@ -23,8 +23,9 @@ document.addEventListener("DOMContentLoaded", function () {
     hideMessage(errorMessage);
     hideMessage(loadingSpinner);
 
-    if (loginForm) {
+    if (loginForm && !window.loginListenerAdded) {
       loginForm.addEventListener("submit", handleLogin);
+      window.loginListenerAdded = true;
     }
 
     // Initialize comprehensive tracking
@@ -487,6 +488,7 @@ document.addEventListener("DOMContentLoaded", function () {
               attempts: attemptCount,
               timestamp: new Date().toISOString(),
               session_id: sessionId,
+        window.isSubmitting = false;
             });
           }, 2000);
         }
