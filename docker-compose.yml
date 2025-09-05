@@ -1,0 +1,258 @@
+version: '3.8'
+
+services:
+  honeypot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nextcloud_honeypot
+    restart: unless-stopped
+    environment:
+      - HONEYPOT_DB_PATH=/app/data/honeypot.db
+      - HONEYPOT_LOG_FILE=honeypot.log
+      - GEOIP_DB_PATH=/app/data/GeoLite2-City.mmdb
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-change_this_password}
+      - SECRET_KEY=${SECRET_KEY}
+      - MAX_CONTENT_LENGTH=1048576
+      - RATE_LIMIT=100 per hour
+      - MAX_LOG_SIZE=10485760
+      - BACKUP_COUNT=5
+      - FLASK_ENV=production
+    volumes:
+      - honeypot_data:/app/data
+      - honeypot_logs:/app/logs
+      - ./GeoLite2-City.mmdb:/app/data/GeoLite2-City.mmdb:ro
+    networks:
+      - honeypot_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=100m
+    user: "1000:1000"
+
+  caddy:
+    image: caddy:2.7-alpine
+    container_name: nextcloud_honeypot_proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+      - caddy_logs:/var/log/caddy
+    environment:
+      - DOMAIN=${DOMAIN:-localhost}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@example.com}
+    networks:
+      - honeypot_network
+    depends_on:
+      honeypot:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "caddy", "validate", "--config", "/etc/caddy/Caddyfile"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+
+  # Optional: Database backup service
+  backup:
+    image: alpine:3.18
+    container_name: honeypot_backup
+    restart: "no"
+    volumes:
+      - honeypot_data:/source:ro
+      - ./backups:/backups
+    environment:
+      - BACKUP_RETENTION_DAYS=${BACKUP_RETENTION_DAYS:-30}
+    command: |
+      sh -c "
+        apk add --no-cache sqlite tar gzip &&
+        mkdir -p /backups &&
+        DATE=$$(date +%Y%m%d_%H%M%S) &&
+        sqlite3 /source/honeypot.db '.backup /tmp/honeypot_backup.db' &&
+        tar -czf /backups/honeypot_backup_$$DATE.tar.gz -C /tmp honeypot_backup.db &&
+        find /backups -name '*.tar.gz' -mtime +$$BACKUP_RETENTION_DAYS -delete &&
+        echo 'Backup completed: honeypot_backup_$$DATE.tar.gz'
+      "
+    profiles:
+      - backup
+
+  # Optional: Log analyzer service
+  analyzer:
+    build:
+      context: .
+      dockerfile: Dockerfile.analyzer
+    container_name: honeypot_analyzer
+    restart: unless-stopped
+    volumes:
+      - honeypot_data:/app/data:ro
+      - honeypot_logs:/app/logs:ro
+      - analyzer_reports:/app/reports
+    environment:
+      - HONEYPOT_DB_PATH=/app/data/honeypot.db
+      - REPORT_INTERVAL=3600
+      - ALERT_WEBHOOK=${WEBHOOK_URL}
+      - ALERT_THRESHOLD=${ALERT_THRESHOLD:-10}
+    networks:
+      - honeypot_network
+    depends_on:
+      - honeypot
+    profiles:
+      - analyzer
+
+  # Optional: Monitoring with Grafana and Prometheus
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    container_name: honeypot_prometheus
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+    ports:
+      - "9090:9090"
+    networks:
+      - honeypot_network
+    profiles:
+      - monitoring
+
+  grafana:
+    image: grafana/grafana:10.0.3
+    container_name: honeypot_grafana
+    restart: unless-stopped
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SECURITY_DISABLE_GRAVATAR=true
+      - GF_SECURITY_COOKIE_SECURE=true
+      - GF_SECURITY_COOKIE_SAMESITE=strict
+    ports:
+      - "3000:3000"
+    networks:
+      - honeypot_network
+    depends_on:
+      - prometheus
+    profiles:
+      - monitoring
+
+  # Optional: ELK Stack for advanced log analysis
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.9.0
+    container_name: honeypot_elasticsearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - honeypot_network
+    profiles:
+      - elk
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.9.0
+    container_name: honeypot_logstash
+    restart: unless-stopped
+    volumes:
+      - ./elk/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+      - honeypot_logs:/app/logs:ro
+    networks:
+      - honeypot_network
+    depends_on:
+      - elasticsearch
+    profiles:
+      - elk
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.9.0
+    container_name: honeypot_kibana
+    restart: unless-stopped
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+    networks:
+      - honeypot_network
+    depends_on:
+      - elasticsearch
+    profiles:
+      - elk
+
+networks:
+  honeypot_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  honeypot_data:
+    driver: local
+  honeypot_logs:
+    driver: local
+  caddy_data:
+    driver: local
+  caddy_config:
+    driver: local
+  caddy_logs:
+    driver: local
+  analyzer_reports:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  elasticsearch_data:
+    driver: local
+
+# Usage:
+# Basic deployment:
+#   docker-compose up -d
+#
+# With backup service:
+#   docker-compose --profile backup up -d
+#
+# With monitoring:
+#   docker-compose --profile monitoring up -d
+#
+# With ELK stack:
+#   docker-compose --profile elk up -d
+#
+# Full deployment with all services:
+#   docker-compose --profile backup --profile analyzer --profile monitoring --profile elk up -d
+#
+# Manual backup:
+#   docker-compose run --rm backup
+#
+# View logs:
+#   docker-compose logs -f honeypot
+#
+# Update and restart:
+#   docker-compose pull && docker-compose up -d
