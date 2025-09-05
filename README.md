@@ -1,12 +1,6 @@
-honeybee/README.md
-<edit_description>
-Merging README files and updating with additional information
-</edit_description>
 # Nextcloud Honeypot Server 🍯
 
-Developed by Mitex Leo. Buy me a coffee: https://bio.link/mitexleo
-
-A sophisticated honeypot designed to mimic a Nextcloud login and registration system to detect and log malicious login attempts. This project creates realistic-looking login pages that capture detailed information about attackers while appearing to be a legitimate cloud storage service.
+A simple honeypot designed to mimic a Nextcloud login and registration system to detect and log malicious login attempts. This project creates realistic-looking login pages that capture detailed information about attackers while appearing to be a legitimate cloud storage service.
 
 ## ⚠️ IMPORTANT LEGAL WARNING
 
