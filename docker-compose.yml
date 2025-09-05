@@ -38,19 +38,19 @@ services:
       - /tmp:noexec,nosuid,size=100m
     user: "1000:1000"
 
-  nginx:
-    build:
-      context: .
-      dockerfile: Dockerfile.nginx
-    container_name: nextcloud_honeypot_proxy_nginx
-    restart: unless-stopped
-    ports:
-      - "80:80"
-    networks:
-      - honeypot_network
-    depends_on:
-      honeypot:
-        condition: service_healthy
+  #nginx:
+  #  build:
+  #   context: .
+  #    dockerfile: Dockerfile.nginx
+  #  container_name: nextcloud_honeypot_proxy_nginx
+  #  restart: unless-stopped
+  #  ports:
+  #    - "80:80"
+  #  networks:
+  #    - honeypot_network
+  #  depends_on:
+  #    honeypot:
+  #      condition: service_healthy
 
   caddy:
     image: caddy:2.7-alpine
