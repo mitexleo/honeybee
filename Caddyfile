@@ -71,24 +71,6 @@
         }
     }
 
-    # Access logging for security analysis
-    log {
-        output file /var/log/caddy/honeypot-access.log {
-            roll_size 100mb
-            roll_keep 10
-            roll_keep_for 720h
-        }
-        format json {
-            time_format "2006-01-02T15:04:05.000Z07:00"
-            message_key "msg"
-            level_key "level"
-            time_key "ts"
-            logger_key "logger"
-            caller_key "caller"
-            stacktrace_key "stacktrace"
-        }
-        level INFO
-    }
 
     # Error page handling
     handle_errors {
@@ -144,9 +126,4 @@
         protocols h1 h2 h3
     }
 
-    # Log errors to file
-    log {
-        output file /var/log/caddy/caddy-error.log
-        level WARN
-    }
 }
