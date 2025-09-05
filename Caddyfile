@@ -29,33 +29,13 @@
         -Server
     }
 
-    # Rate limiting to prevent abuse
-    rate_limit {
-        zone honeypot {
-            key {remote_host}
-            events 100
-            window 1h
-        }
 
-        zone api {
-            key {remote_host}
-            events 50
-            window 10m
-        }
-
-        zone admin {
-            key {remote_host}
-            events 20
-            window 1h
-        }
-    }
 
     # Admin routes - stricter rate limiting
     @admin {
         path /admin/* /api/export/* /api/metrics
     }
     handle @admin {
-        rate_limit admin
         reverse_proxy honeypot:5000 {
             header_up Host {host}
             header_up X-Real-IP {remote_host}
@@ -70,7 +50,6 @@
         path /api/*
     }
     handle @api {
-        rate_limit api
         reverse_proxy honeypot:5000 {
             header_up Host {host}
             header_up X-Real-IP {remote_host}
@@ -97,7 +76,6 @@
 
     # All other routes - normal rate limiting
     handle {
-        rate_limit honeypot
 
         # Reverse proxy to Flask application
         reverse_proxy honeypot:5000 {
