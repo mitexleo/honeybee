@@ -1,4 +1,10 @@
+honeybee/README.md
+<edit_description>
+Merging README files and updating with additional information
+</edit_description>
 # Nextcloud Honeypot Server 🍯
+
+Developed by Mitex Leo. Buy me a coffee: https://bio.link/mitexleo
 
 A sophisticated honeypot designed to mimic a Nextcloud login and registration system to detect and log malicious login attempts. This project creates realistic-looking login pages that capture detailed information about attackers while appearing to be a legitimate cloud storage service.
 
@@ -14,50 +20,105 @@ A sophisticated honeypot designed to mimic a Nextcloud login and registration sy
 
 ## Features
 
-### 🎭 Realistic Frontend
-- **Authentic Nextcloud Design**: Pixel-perfect recreation of Nextcloud's login interface
-- **Responsive Design**: Works on desktop, tablet, and mobile devices
-- **Interactive Elements**: Functional forms with realistic validation feedback
-- **Alternative Login Options**: Fake Google/Microsoft SSO buttons
-- **Registration System**: Complete signup flow to gather more attacker data
+### 🎭 Authentic Nextcloud Interface
+- **Pixel-perfect Nextcloud design** - Matches authentic Nextcloud login pages
+- **Responsive design** - Works on desktop, tablet, and mobile devices
+- **Real Nextcloud logo** - Properly styled SVG logo that scales correctly
+- **Authentic color scheme** - Uses official Nextcloud blue (#0082c9) gradient backgrounds
+- **Professional typography** - Inter font family for modern appearance
 
-### 📊 Comprehensive Logging
-- **Login Attempts**: Username, password, IP address, browser details
-- **Registration Data**: Full name, email, username, passwords
-- **Behavioral Analytics**: Mouse movements, typing patterns, form completion time
-- **Technical Fingerprinting**: Screen resolution, browser capabilities, timezone
-- **Session Tracking**: Multi-page user journeys and interaction patterns
+### 🔍 Advanced Data Collection
+- **Browser fingerprinting** - WebGL, Canvas, Audio, and Font fingerprinting
+- **Hardware detection** - CPU cores, memory, screen resolution, device capabilities
+- **Network analysis** - Connection speed, RTT, WebRTC IP leak detection
+- **Behavioral tracking** - Mouse movements, keystroke patterns, typing speed analysis
+- **Form interaction analysis** - Field focus times, typing patterns, copy/paste detection
+- **Developer tools detection** - Multiple methods to detect debugging attempts
+- **Geolocation tracking** - GPS coordinates if user permits
+- **Battery status** - Device battery information (where supported)
+
+### 📊 Professional Dashboard
+- **Real-time statistics** - Live attack metrics and threat analysis
+- **Interactive charts** - Visual representation of attack patterns
+- **Geographic mapping** - Attack origins by country and city
+- **Top attackers list** - Most active IPs with threat level indicators
+- **Session timeline** - Attack progression over time
+- **Auto-refresh** - Real-time updates every 30 seconds
+
+### 💾 Comprehensive Data Export
+- **CSV exports** - Login attempts, registrations, sessions, activity logs
+- **JSON export** - Structured data for analysis tools
+- **ZIP archives** - Bulk export of all data types
+- **Filtering options** - Export by date range (up to 90 days)
+- **Forensic ready** - All timestamps, IPs, and behavioral data preserved
 
 ### 🔒 Security Features
-- **SQLite Database**: Secure local storage of all collected data
-- **Password Hashing**: SHA-256 hashing of captured passwords
-- **IP Geolocation**: Country/city detection (requires GeoIP database)
-- **Real-time Logging**: Immediate data capture and storage
-- **Export Capabilities**: JSON export of all collected data
+- **Secure database** - SQLite with proper permissions (0600)
+- **Rate limiting** - Prevents dashboard abuse
+- **Basic authentication** - Admin dashboard protection
+- **Input sanitization** - XSS prevention on dashboard
+- **Logging rotation** - Automatic log file management
+- **Operational Security** - Minimal footprint, low resource requirements
 
 ### 🖥️ Admin Dashboard
-- **Live Monitoring**: Real-time view of login attempts
-- **Statistics**: Session counts, unique IPs, geographic distribution
-- **Data Export**: Complete data export in JSON format
-- **Log Management**: Rotating file logs with configurable retention
+- **Live Monitoring** - Real-time view of login attempts
+- **Statistics** - Session counts, unique IPs, geographic distribution
+- **Data Export** - Complete data export in JSON format
+- **Log Management** - Rotating file logs with configurable retention
 
-## Installation
+## 📁 Project Structure
+
+```
+honeybee/
+├── config/
+│   ├── Caddyfile
+│   ├── Dockerfile
+│   ├── Dockerfile.nginx
+│   ├── docker-compose.yml
+│   ├── nginx.conf
+│   ├── requirements.txt
+│   └── setup.sh
+├── data/
+├── logs/
+├── src/
+│   ├── export_utils.py
+│   ├── routes.py
+│   ├── server.py
+│   └── start_honeypot.py
+├── tests/
+│   └── test_honeypot.py
+├── web/
+│   ├── dashboard.html
+│   ├── index.html
+│   ├── register.html
+│   ├── register.js
+│   ├── script.js
+│   └── styles.css
+├── .gitignore
+├── GeoLite2-City.mmdb
+├── LICENSE
+└── README.md
+```
+
+## 🛠️ Installation & Setup
 
 ### Prerequisites
-- Python 3.7 or higher
-- pip (Python package manager)
+- Python 3.8+
+- Modern web browser
+- 2GB RAM minimum
+- 10GB storage for logs
 
-### Quick Setup
+### Quick Start
 
 1. **Clone or download the project:**
    ```bash
    git clone <repository-url>
-   cd ncphishing
+   cd honeybee
    ```
 
 2. **Install Python dependencies:**
    ```bash
-   pip install -r requirements.txt
+   pip install -r config/requirements.txt
    ```
 
 3. **Optional: Download GeoIP Database**
@@ -65,45 +126,87 @@ A sophisticated honeypot designed to mimic a Nextcloud login and registration sy
    - Download GeoLite2-City.mmdb
    - Place it in the project directory
 
-4. **Start the server:**
+4. **Configure environment** (optional)
    ```bash
-   python server.py
+   export ADMIN_USERNAME="admin"
+   export ADMIN_PASSWORD="secure_password_here"
+   export SECRET_KEY="your_secret_key_here"
+   export GEOIP_DB_PATH="GeoLite2-City.mmdb"
    ```
 
-5. **Access the honeypot:**
+5. **Start the server:**
+   ```bash
+   python src/server.py
+   ```
+
+6. **Access the honeypot:**
    - Main login page: http://localhost:5000
    - Registration page: http://localhost:5000/register.html
    - Admin dashboard: http://localhost:5000/admin/dashboard
 
-## Project Structure
+## 🎯 Data Collection Capabilities
 
+### User Fingerprinting
+- **Browser Information**: User agent, platform, language, plugins
+- **Hardware Details**: CPU cores, memory, screen resolution, color depth
+- **Network Metrics**: Connection speed, RTT, effective connection type
+- **WebGL Fingerprinting**: Graphics card vendor, renderer, capabilities
+- **Canvas Fingerprinting**: Unique browser rendering signatures
+- **Audio Fingerprinting**: Audio context properties and capabilities
+- **Font Detection**: Available system fonts enumeration
+
+### Behavioral Analysis
+- **Mouse Tracking**: Movement patterns, click locations, scroll behavior
+- **Keystroke Analysis**: Typing speed, rhythm, pause patterns
+- **Form Interaction**: Field focus times, completion patterns, backspace usage
+- **Copy/Paste Detection**: Clipboard operations and patterns
+- **Tab Switching**: Visibility change detection and focus patterns
+- **Touch Events**: Mobile interaction patterns (if applicable)
+
+### Session Intelligence
+- **IP Geolocation**: Country, city, ISP information
+- **Session Duration**: Time spent on pages, interaction depth
+- **Navigation Patterns**: Page flow, referrer analysis
+- **Technical Profiling**: Screen size, timezone, device capabilities
+- **Security Evasion**: VPN detection, proxy identification
+
+## 📊 Dashboard Features
+
+### Real-time Monitoring
+- **Live Statistics**: Active sessions, unique attackers, countries
+- **Threat Indicators**: Risk levels based on activity patterns
+- **Geographic Distribution**: World map of attack origins
+- **Activity Timeline**: Hourly/daily attack progression
+
+### Attack Analysis
+- **Credential Harvesting**: Captured usernames and passwords
+- **Registration Attempts**: Fake account creation attempts
+- **Behavioral Clustering**: Similar attack pattern grouping
+- **Repeat Offenders**: Multi-session attacker identification
+
+### Export Capabilities
+```bash
+# Export formats available:
+GET /api/export/csv?type=all        # ZIP file with all data
+GET /api/export/csv?type=login      # Login attempts CSV
+GET /api/export/csv?type=register   # Registration attempts CSV
+GET /api/export/csv?type=sessions   # Session data CSV
+GET /api/export/json                # JSON format export
 ```
-ncphishing/
-├── index.html          # Main login page
-├── register.html       # Registration page
-├── styles.css          # Nextcloud-style CSS
-├── script.js           # Login page JavaScript
-├── register.js         # Registration page JavaScript
-├── server.py           # Flask server with logging
-├── requirements.txt    # Python dependencies
-├── README.md          # This file
-├── honeypot.db        # SQLite database (created automatically)
-└── logs/              # Log files directory (created automatically)
-```
 
-## Configuration
+## 🔒 Security Features
 
-### Server Settings
-Edit `server.py` to modify:
-- **Port**: Default is 5000
-- **Database path**: Default is `honeypot.db`
-- **Log rotation**: Default is 10MB with 5 backups
-- **GeoIP database**: Default is `GeoLite2-City.mmdb`
+### Data Protection
+- **Encrypt sensitive data** if deploying in production
+- **Implement access controls** for the admin dashboard
+- **Regular log rotation** to prevent disk space issues
+- **Secure database backups** if data is valuable
 
-### Frontend Customization
-- **Company branding**: Modify HTML files to change logos/text
-- **Styling**: Edit `styles.css` for visual customization
-- **Behavior**: Adjust JavaScript files for different responses
+### Network Security
+- **Firewall configuration** to limit access
+- **HTTPS deployment** for production use
+- **Rate limiting** to prevent abuse
+- **IP whitelisting** for admin access
 
 ## Usage
 
@@ -119,122 +222,169 @@ Edit `server.py` to modify:
 The honeypot logs extensive data for behavioral analysis:
 
 - **Timing Analysis**: How quickly forms are filled
-- **Mouse Patterns**: Movement tracking for bot detection  
+- **Mouse Patterns**: Movement tracking for bot detection
 - **Browser Fingerprinting**: Detailed technical profiling
 - **Multi-session Tracking**: Cross-visit behavior patterns
 
-### Dashboard Features
+## 📈 Analytics & Intelligence
 
-The admin dashboard provides:
-- Recent login and registration attempts
-- IP addresses and geographic locations
-- User agents and technical details
-- Session statistics and trends
+### Data Points Collected
+- **Authentication attempts**: 50+ data points per login
+- **Registration attempts**: 60+ data points per registration
+- **Session fingerprints**: 40+ browser/system characteristics
+- **Behavioral metrics**: Mouse, keyboard, and interaction patterns
+- **Network intelligence**: IP, geolocation, connection analysis
 
-## Data Collection
+### Use Cases
+- **Threat intelligence** - Understanding attacker TTPs
+- **Security research** - Academic and commercial research
+- **Incident response** - Attack pattern analysis
+- **Honeypot networks** - Integration with threat feeds
 
-### Login Attempts
-- Username and password (plaintext + hashed)
-- IP address and geolocation
-- User agent and browser details
-- Form completion timing
-- Mouse movement patterns
+## 🚀 Deployment Options
 
-### Registration Attempts  
-- Full name, email, username, password
-- Terms acceptance and newsletter subscription
-- Same technical fingerprinting as login
-- Form abandonment tracking
+### Development
+```bash
+python src/server.py
+# Runs on localhost:5000
+```
 
-### General Activity
-- Page loads and navigation
-- Developer tools detection
-- Copy/paste operations
-- Tab switching behavior
+### Production with Docker
+```dockerfile
+FROM python:3.9-slim
+COPY . /app
+WORKDIR /app
+RUN pip install -r config/requirements.txt
+EXPOSE 5000
+CMD ["python", "src/server.py"]
+```
 
-## Security Considerations
+### Reverse Proxy Setup
+```nginx
+server {
+    listen 80;
+    server_name your-honeypot.domain.com;
+    location / {
+        proxy_pass http://localhost:5000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+```
 
-### Data Protection
-- **Encrypt sensitive data** if deploying in production
-- **Implement access controls** for the admin dashboard
-- **Regular log rotation** to prevent disk space issues
-- **Secure database backups** if data is valuable
+## 📊 Sample Data Output
 
-### Network Security
-- **Firewall configuration** to limit access
-- **HTTPS deployment** for production use
-- **Rate limiting** to prevent abuse
-- **IP whitelisting** for admin access
+### Login Attempt (CSV)
+```csv
+Timestamp,Session ID,Username,Password,IP Address,User Agent,Mouse Movements,Keystrokes,Country
+2024-01-15 14:30:22,session_abc123,admin,password123,192.168.1.100,Mozilla/5.0...,{"points": 156},{"average_interval": 120},United States
+```
 
-## Legal and Ethical Guidelines
+### Behavioral Analysis (JSON)
+```json
+{
+  "session_id": "session_abc123",
+  "typing_patterns": {
+    "average_interval": 120,
+    "rhythm_variance": 0.23,
+    "backspace_ratio": 0.15
+  },
+  "mouse_patterns": {
+    "total_distance": 2847,
+    "average_speed": 156.3,
+    "click_accuracy": 0.94
+  },
+  "fingerprint": {
+    "canvas_hash": "a1b2c3d4...",
+    "webgl_vendor": "NVIDIA Corporation",
+    "fonts_available": 47
+  }
+}
+```
 
-### Deployment Requirements
-- Deploy only on networks you control
-- Clearly document the honeypot's purpose
-- Establish data retention policies
-- Implement appropriate access controls
+## 🔧 Configuration Options
 
-### Data Handling
-- Follow applicable privacy laws
-- Secure storage of collected data
-- Regular data purging if not needed
-- Proper disposal of sensitive information
+### Environment Variables
+```bash
+HONEYPOT_DB_PATH=honeypot.db        # Database file path
+ADMIN_USERNAME=admin                # Dashboard username
+ADMIN_PASSWORD=secure123            # Dashboard password
+SECRET_KEY=random_secret_key        # Flask secret key
+GEOIP_DB_PATH=GeoLite2-City.mmdb   # GeoIP database path
+MAX_LOG_SIZE=10485760               # Log file size limit
+BACKUP_COUNT=5                      # Log rotation count
+RATE_LIMIT="100 per hour"           # API rate limiting
+```
 
-### Responsible Disclosure
-- Report findings to appropriate authorities
-- Share threat intelligence with security community
-- Protect legitimate user data
-- Document attack patterns for research
+### Database Schema
+The system automatically creates tables for:
+- `sessions` - Visitor session data
+- `login_attempts` - Login form submissions
+- `registration_attempts` - Registration form submissions
+- `activity_log` - Detailed behavioral logs
 
-## Troubleshooting
+## 🚨 Legal & Ethical Considerations
+
+### ⚖️ Legal Compliance
+- **Logging Disclosure**: Consider privacy laws in your jurisdiction
+- **Data Retention**: Implement appropriate data retention policies
+- **Terms of Service**: Display clear terms about data collection
+- **Geographic Restrictions**: Some regions may restrict honeypot deployment
+
+### 🛡️ Responsible Use
+- **Research Purpose**: Intended for security research and threat intelligence
+- **No Entrapment**: Avoid targeting specific individuals
+- **Data Security**: Secure collected data appropriately
+- **Ethical Guidelines**: Follow responsible disclosure practices
+
+## 🔍 Troubleshooting
 
 ### Common Issues
+1. **Dashboard not loading**: Check authentication credentials
+2. **No data collection**: Verify JavaScript is enabled
+3. **Database errors**: Check file permissions (0600)
+4. **Export failures**: Ensure sufficient disk space
 
-**Server won't start:**
-- Check if port 5000 is available
-- Verify Python dependencies are installed
-- Ensure SQLite database can be created
-
-**No geolocation data:**
-- Download the MaxMind GeoLite2-City database
-- Place it in the project root directory
-- Restart the server
-
-**Dashboard shows no data:**
-- Verify JavaScript is enabled in browsers
-- Check browser console for errors
-- Confirm server logging endpoint is accessible
+### Debug Mode
+```bash
+export FLASK_DEBUG=1
+python src/server.py
+```
 
 ### Log Analysis
+```bash
+tail -f logs/honeypot.log
+```
 
-Check the following log files:
-- `logs/honeypot.log` - Server activity and errors
-- `honeypot.db` - SQLite database with all collected data
-- Browser console - JavaScript errors and client-side logs
+## 🤝 Contributing
 
-## Contributing
+### Development Setup
+```bash
+git clone <repository>
+cd honeybee
+pip install -r config/requirements.txt
+pip install -r requirements-dev.txt  # Development dependencies
+```
 
-This project is for educational and research purposes. If you have improvements:
+### Code Style
+- Python: Follow PEP 8
+- JavaScript: Use ESLint configuration
+- HTML/CSS: Maintain consistent formatting
 
-1. Ensure changes maintain the realistic appearance
-2. Add comprehensive logging for new features
-3. Follow ethical guidelines for honeypot development
-4. Test thoroughly before deployment
+## 📄 License
 
-## Disclaimer
+This project is licensed under the GNU Affero General Public License v3.0. See LICENSE file for details.
 
-This software is provided "as is" without warranty. The developers are not responsible for:
-- Misuse of the honeypot system
-- Legal consequences of deployment
-- Data breaches or security issues
-- Compliance with local regulations
+## ⚠️ Disclaimer
 
-Always consult with legal counsel before deploying honeypots in production environments.
-
-## License
-
-This project is intended for educational and research purposes only. Use responsibly and in accordance with applicable laws and regulations.
+This software is provided for educational and research purposes only. Users are responsible for ensuring compliance with applicable laws and regulations. The authors assume no liability for misuse of this software.
 
 ---
 
+**Version**: 2.0 Enhanced
+**Last Updated**: January 2024
+**Maintained By**: Mitex Leo
+
 **Remember**: A honeypot is only as good as the analysis of the data it collects. Use this tool responsibly to improve cybersecurity and protect legitimate users.
+
+Buy me a coffee: https://bio.link/mitexleo

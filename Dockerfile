@@ -25,12 +25,13 @@ RUN pip install --no-cache-dir --upgrade pip && \
 FROM base as production
 
 # Copy application code
-COPY server.py .
+ 
 COPY index.html .
 COPY register.html .
 COPY styles.css .
 COPY script.js .
 COPY register.js .
+COPY dashboard.html .
 
 # Create necessary directories
 RUN mkdir -p /app/data /app/logs /app/backups && \
@@ -59,4 +60,4 @@ ENV FLASK_ENV=production \
     HONEYPOT_LOG_FILE=honeypot.log
 
 # Run the application with gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--timeout", "60", "--max-requests", "1000", "--max-requests-jitter", "50", "--preload", "server:app"]
+CMD ["python", "server.py"]
