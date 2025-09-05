@@ -420,6 +420,8 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   async function handleLogin(event) {
+    if (window.isSubmitting) return;
+    window.isSubmitting = true;
     event.preventDefault();
     attemptCount++;
 
@@ -468,7 +470,6 @@ document.addEventListener("DOMContentLoaded", function () {
     };
 
     sendToHoneypotServer("login_attempt", loginData);
-    loginForm.submit();
 
     // Simulate realistic server response time
     setTimeout(
