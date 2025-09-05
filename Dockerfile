@@ -25,7 +25,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 FROM base as production
 
 # Copy application code
-COPY production_server.py .
+COPY server.py .
 COPY index.html .
 COPY register.html .
 COPY styles.css .
@@ -39,7 +39,7 @@ RUN mkdir -p /app/data /app/logs /app/backups && \
 # Set file permissions
 RUN chmod 755 /app && \
     chmod 644 /app/*.html /app/*.css /app/*.js && \
-    chmod 755 /app/production_server.py && \
+    chmod 755 /app/server.py && \
     chmod 750 /app/data /app/logs /app/backups
 
 # Health check
@@ -59,4 +59,4 @@ ENV FLASK_ENV=production \
     HONEYPOT_LOG_FILE=honeypot.log
 
 # Run the application with gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--timeout", "60", "--keepalive", "2", "--max-requests", "1000", "--max-requests-jitter", "50", "--preload", "production_server:app"]
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--timeout", "60", "--max-requests", "1000", "--max-requests-jitter", "50", "--preload", "server:app"]

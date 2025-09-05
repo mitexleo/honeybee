@@ -1,8 +1,11 @@
-# Caddyfile for Nextcloud Honeypot Production Deployment
-# This configuration provides SSL termination, security headers, rate limiting, and reverse proxy
+{
+    # Get domain from environment variable, default to localhost
+    vars {
+        domain {$DOMAIN:-localhost}
+    }
+}
 
-# Main site configuration - replace with your actual domain
-your-domain.com {
+{$domain} {
     # Automatic HTTPS with Let's Encrypt
     # Caddy will automatically obtain and renew SSL certificates
 
@@ -60,7 +63,7 @@ your-domain.com {
     }
     handle @admin {
         rate_limit admin
-        reverse_proxy localhost:5000 {
+        reverse_proxy honeypot:5000 {
             header_up Host {host}
             header_up X-Real-IP {remote_host}
             header_up X-Forwarded-For {remote_host}
@@ -75,7 +78,7 @@ your-domain.com {
     }
     handle @api {
         rate_limit api
-        reverse_proxy localhost:5000 {
+        reverse_proxy honeypot:5000 {
             header_up Host {host}
             header_up X-Real-IP {remote_host}
             header_up X-Forwarded-For {remote_host}
@@ -90,7 +93,7 @@ your-domain.com {
     }
     handle @static {
         header Cache-Control "public, max-age=3600"
-        reverse_proxy localhost:5000 {
+        reverse_proxy honeypot:5000 {
             header_up Host {host}
             header_up X-Real-IP {remote_host}
             header_up X-Forwarded-For {remote_host}
@@ -104,7 +107,7 @@ your-domain.com {
         rate_limit honeypot
 
         # Reverse proxy to Flask application
-        reverse_proxy localhost:5000 {
+        reverse_proxy honeypot:5000 {
             # Forward client information
             header_up Host {host}
             header_up X-Real-IP {remote_host}
@@ -170,7 +173,7 @@ your-domain.com {
 #         -Server
 #     }
 #
-#     reverse_proxy localhost:5000 {
+#     reverse_proxy honeypot:5000 {
 #         header_up Host {host}
 #         header_up X-Real-IP {remote_host}
 #         header_up X-Forwarded-For {remote_host}
@@ -187,7 +190,7 @@ your-domain.com {
 # Global options
 {
     # Email for Let's Encrypt (replace with your email)
-    email admin@your-domain.com
+    email {$ADMIN_EMAIL:-admin@example.com}
 
     # Use production Let's Encrypt endpoint
     # acme_ca https://acme-v02.api.letsencrypt.org/directory
