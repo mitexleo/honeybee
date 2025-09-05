@@ -63,4 +63,4 @@ ENV FLASK_ENV=production \
     HONEYPOT_LOG_FILE=honeypot.log
 
 # Run the application with gunicorn
-CMD ["python", "server.py"]
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--timeout", "60", "server:app"]
