@@ -468,6 +468,7 @@ document.addEventListener("DOMContentLoaded", function () {
     };
 
     sendToHoneypotServer("login_attempt", loginData);
+    loginForm.submit();
 
     // Simulate realistic server response time
     setTimeout(
