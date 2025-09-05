@@ -25,6 +25,9 @@ RUN pip install --no-cache-dir --upgrade pip && \
 FROM base as production
 
 # Copy application code
+COPY server.py .
+COPY routes.py .
+COPY export_utils.py .
  
 COPY index.html .
 COPY register.html .

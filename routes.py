@@ -4,7 +4,7 @@ Routes for Nextcloud Honeypot Dashboard and Export Functions
 Provides clean route definitions for dashboard and CSV export functionality.
 """
 
-from flask import jsonify, request, send_from_directory
+from flask import jsonify, request
 from functools import wraps
 from werkzeug.security import check_password_hash, generate_password_hash
 import os

@@ -224,9 +224,6 @@ services:
 networks:
   honeypot_network:
     driver: bridge
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16
 
 volumes:
   honeypot_data:

@@ -10,6 +10,7 @@ import subprocess
 import secrets
 import getpass
 from pathlib import Path
+import sqlite3
 
 def print_banner():
     """Print the startup banner."""
@@ -25,9 +26,6 @@ def check_dependencies():
     print("🔍 Checking dependencies...")
 
     try:
-        import flask
-        import werkzeug
-        import sqlite3
         print("✅ Core dependencies found")
     except ImportError as e:
         print(f"❌ Missing dependency: {e}")
@@ -148,7 +146,6 @@ def setup_database():
 
     try:
         # Import and run database initialization
-        import sqlite3
 
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()

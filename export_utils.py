@@ -8,7 +8,6 @@ import sqlite3
 import csv
 import io
 import zipfile
-import json
 from datetime import datetime, timezone
 from flask import make_response, jsonify
 
@@ -22,7 +21,7 @@ def export_login_attempts_csv(db_path, days_back=30):
 
         cursor.execute('''
             SELECT
-                timestamp, session_id, attempt_number, username, password,
+                timestamp, session_id, attempt_number, username, password_hash as password,
                 remember_me, ip_address, user_agent, referrer,
                 screen_info, browser_info, timezone, plugins, do_not_track,
                 form_fill_time, mouse_movements, keystrokes, focus_events
@@ -352,7 +351,7 @@ def get_dashboard_data(db_path):
         # Get recent login attempts (last 50)
         cursor.execute('''
             SELECT
-                la.timestamp, la.ip_address, la.username, la.password,
+                la.timestamp, la.ip_address, la.username, la.password_hash as password,
                 la.session_id, la.attempt_number, la.user_agent,
                 s.country
             FROM login_attempts la
@@ -366,7 +365,7 @@ def get_dashboard_data(db_path):
         cursor.execute('''
             SELECT
                 ra.timestamp, ra.ip_address, ra.fullname, ra.email,
-                ra.username, ra.password, ra.session_id,
+                ra.username, ra.password_hash as password, ra.session_id,
                 s.country
             FROM registration_attempts ra
             LEFT JOIN sessions s ON ra.ip_address = s.ip_address

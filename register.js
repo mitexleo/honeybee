@@ -1,5 +1,3 @@
-// Enhanced Nextcloud Registration Honeypot - Comprehensive Data Collection
-// Collects extensive attacker fingerprinting data for registration attempts
 
 document.addEventListener("DOMContentLoaded", function () {
   const registerForm = document.getElementById("registerForm");

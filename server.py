@@ -7,12 +7,10 @@ A hardened Flask-based server with security controls for production deployment.
 import os
 import json
 import sqlite3
-import hashlib
 import secrets
-import time
 from datetime import datetime, timezone
 from functools import wraps
-from flask import Flask, request, jsonify, send_from_directory, redirect, url_for, abort, Response, make_response
+from flask import Flask, request, jsonify, send_from_directory, redirect, url_for, abort
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -730,7 +728,7 @@ if __name__ == '__main__':
     init_database()
 
     print("🍯 Production Nextcloud Honeypot Server Starting...")
-    print(f"📊 Dashboard: https://your-domain.com/admin/dashboard")
+    print("📊 Dashboard: https://your-domain.com/admin/dashboard")
     print(f"📁 Database: {DATABASE_PATH}")
     print(f"📜 Logs: logs/{LOG_FILE}")
     print(f"🔒 Admin User: {ADMIN_USERNAME}")
@@ -745,7 +743,6 @@ if __name__ == '__main__':
 
     # Production WSGI server recommendation
     try:
-        import gunicorn
         print("💡 For production, run with: gunicorn -w 4 -b 0.0.0.0:5000 production_server:app")
     except ImportError:
         print("💡 Install gunicorn for production: pip install gunicorn")

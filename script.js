@@ -1,5 +1,3 @@
-// Enhanced Nextcloud Login Honeypot - Comprehensive Data Collection
-// Collects extensive attacker fingerprinting data
 
 document.addEventListener("DOMContentLoaded", function () {
   const loginForm = document.getElementById("loginForm");
