@@ -47,12 +47,12 @@ app.config['MAX_CONTENT_LENGTH'] = MAX_CONTENT_LENGTH
 
 # Initialize rate limiter
 limiter = Limiter(
-limiter.request_filter(lambda: request.remote_addr == "127.0.0.1")
     key_func=get_remote_address,
     default_limits=[RATE_LIMIT],
     storage_uri="memory://"
 )
 limiter.init_app(app)
+limiter.request_filter(lambda: request.remote_addr == "127.0.0.1")
 
 # Setup secure logging
 logging.basicConfig(
