@@ -75,10 +75,10 @@ def export_registration_attempts_csv(db_path, days_back=30):
         cursor.execute('''
             SELECT
                 timestamp, session_id, attempt_number, fullname, email, username,
-                password, password_confirm, terms_accepted, newsletter_subscribed,
+                password, terms_accepted, newsletter_subscribed,
                 ip_address, user_agent, referrer, screen_info, browser_info,
                 timezone, plugins, do_not_track, form_fill_time,
-                mouse_movements, keystrokes, focus_events, field_interactions
+                mouse_movements, keystrokes, focus_events
             FROM registration_attempts
             WHERE timestamp > datetime('now', '-{} days')
             ORDER BY timestamp DESC
@@ -93,10 +93,10 @@ def export_registration_attempts_csv(db_path, days_back=30):
         # Header
         writer.writerow([
             'Timestamp', 'Session ID', 'Attempt Number', 'Full Name', 'Email', 'Username',
-            'Password', 'Password Confirm', 'Terms Accepted', 'Newsletter Subscribed',
+            'Password', 'Terms Accepted', 'Newsletter Subscribed',
             'IP Address', 'User Agent', 'Referrer', 'Screen Info', 'Browser Info',
             'Timezone', 'Plugins', 'Do Not Track', 'Form Fill Time (ms)',
-            'Mouse Movements', 'Keystrokes', 'Focus Events', 'Field Interactions'
+            'Mouse Movements', 'Keystrokes', 'Focus Events'
         ])
 
         # Data rows

