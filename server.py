@@ -153,6 +153,8 @@ def init_database():
             screen_info TEXT,
             browser_info TEXT,
             timezone TEXT,
+            plugins TEXT,
+            do_not_track TEXT,
             success BOOLEAN DEFAULT 0,
             FOREIGN KEY (session_id) REFERENCES sessions (session_id)
         )
@@ -179,6 +181,8 @@ def init_database():
             screen_info TEXT,
             browser_info TEXT,
             timezone TEXT,
+            plugins TEXT,
+            do_not_track TEXT,
             FOREIGN KEY (session_id) REFERENCES sessions (session_id)
         )
     ''')
@@ -192,6 +196,17 @@ def init_database():
             data TEXT,
             timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             ip_address TEXT NOT NULL,
+            FOREIGN KEY (session_id) REFERENCES sessions (session_id)
+        )
+    ''')
+
+    # Create fingerprinting table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS fingerprinting (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id TEXT NOT NULL,
+            data TEXT NOT NULL,
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (session_id) REFERENCES sessions (session_id)
         )
     ''')
@@ -426,6 +441,9 @@ def log_honeypot_activity():
         elif activity_type == 'registration_attempt':
             if not log_registration_attempt(activity_data, ip_address):
                 return jsonify({'error': 'Failed to log registration attempt'}), 500
+        elif activity_type == 'fingerprint':
+            if not log_fingerprint(session_id, activity_data, ip_address):
+                return jsonify({'error': 'Failed to log fingerprint'}), 500
         else:
             # Log general activity
             if not log_general_activity(session_id, activity_type, activity_data, ip_address):
@@ -466,8 +484,8 @@ def log_login_attempt(data, ip_address):
             INSERT INTO login_attempts
             (session_id, attempt_number, username, password_hash, remember_me,
              ip_address, user_agent, referrer, mouse_movements, form_fill_time,
-             screen_info, browser_info, timezone)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             screen_info, browser_info, timezone, plugins, do_not_track)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             session_id,
             int(data.get('attempt_number', 1)),
@@ -481,7 +499,9 @@ def log_login_attempt(data, ip_address):
             int(data.get('form_fill_time', 0)) if data.get('form_fill_time') else None,
             json.dumps(data.get('screen_info', {})),
             json.dumps(data.get('browser_info', {})),
-            sanitize_input(data.get('timezone', ''), 50)
+            sanitize_input(data.get('timezone', ''), 50),
+            json.dumps(data.get('plugins', [])),
+            sanitize_input(data.get('doNotTrack', ''), 10)
         ))
 
         conn.commit()
@@ -519,8 +539,8 @@ def log_registration_attempt(data, ip_address):
             INSERT INTO registration_attempts
             (session_id, attempt_number, fullname, email, username, password_hash,
              terms_accepted, newsletter_subscribed, ip_address, user_agent, referrer,
-             mouse_movements, form_fill_time, screen_info, browser_info, timezone)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             mouse_movements, form_fill_time, screen_info, browser_info, timezone, plugins, do_not_track)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             session_id,
             int(data.get('attempt_number', 1)),
@@ -537,7 +557,9 @@ def log_registration_attempt(data, ip_address):
             int(data.get('form_fill_time', 0)) if data.get('form_fill_time') else None,
             json.dumps(data.get('screen_info', {})),
             json.dumps(data.get('browser_info', {})),
-            sanitize_input(data.get('timezone', ''), 50)
+            sanitize_input(data.get('timezone', ''), 50),
+            json.dumps(data.get('plugins', [])),
+            sanitize_input(data.get('doNotTrack', ''), 10)
         ))
 
         conn.commit()
@@ -572,13 +594,32 @@ def log_general_activity(session_id, activity_type, data, ip_address):
     finally:
         conn.close()
 
+def log_fingerprint(session_id, data, ip_address):
+    """Log fingerprinting data."""
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            INSERT INTO fingerprinting (session_id, data, ip_address)
+            VALUES (?, ?, ?)
+        ''', (session_id, json.dumps(data), ip_address))
+
+        conn.commit()
+        return True
+    except Exception as e:
+        app.logger.error(f"Error logging fingerprint: {e}")
+        return False
+    finally:
+        conn.close()
+
 @app.route('/api/client-ip')
 @limiter.limit("10 per minute")
 def client_ip():
     """Return client IP address."""
     return jsonify({'ip': get_client_ip()})
 
-@app.route('/admin/dashboard')
+@app.route('/admin')
 @require_admin_auth
 @limiter.limit("30 per hour")
 def admin_dashboard():
@@ -593,7 +634,7 @@ def admin_dashboard():
 
         # Get recent login attempts with pagination
         cursor.execute('''
-            SELECT username, ip_address, timestamp, user_agent, attempt_number
+            SELECT username, ip_address, timestamp, user_agent, attempt_number, screen_info, browser_info, timezone, plugins, do_not_track
             FROM login_attempts
             ORDER BY timestamp DESC
             LIMIT ? OFFSET ?
@@ -658,11 +699,11 @@ def admin_dashboard():
             '</div>',
             '<h2>🚨 Recent Login Attempts</h2>',
             '<table>',
-            '<tr><th>Timestamp</th><th>IP Address</th><th>Username</th><th>Attempts</th><th>User Agent</th></tr>'
+            '<tr><th>Timestamp</th><th>IP Address</th><th>Username</th><th>Attempts</th><th>User Agent</th><th>Screen Info</th><th>Browser Info</th><th>Timezone</th><th>Plugins</th><th>DNT</th></tr>'
         ]
 
         for attempt in login_attempts:
-            username, ip, timestamp, user_agent, attempt_num = attempt
+            username, ip, timestamp, user_agent, attempt_num, screen_info, browser_info, timezone, plugins, do_not_track = attempt
             # Escape HTML to prevent XSS
             username = bleach.clean(username, tags=[], strip=True)
             user_agent = bleach.clean(user_agent[:100], tags=[], strip=True)
@@ -674,6 +715,11 @@ def admin_dashboard():
                 f'<td class="username">{username}</td>'
                 f'<td>{attempt_num}</td>'
                 f'<td>{user_agent}...</td>'
+                f'<td>{screen_info}</td>'
+                f'<td>{browser_info}</td>'
+                f'<td>{timezone}</td>'
+                f'<td>{plugins}</td>'
+                f'<td>{do_not_track}</td>'
                 f'</tr>'
             )
 
@@ -748,7 +794,7 @@ def export_json():
         # Export recent login attempts
         cursor.execute('''
             SELECT id, session_id, attempt_number, username, remember_me, timestamp,
-                   ip_address, user_agent, referrer, form_fill_time, timezone
+                   ip_address, user_agent, referrer, form_fill_time, timezone, plugins, do_not_track
             FROM login_attempts
             WHERE timestamp > datetime('now', '-{} days')
             ORDER BY timestamp DESC
@@ -759,7 +805,7 @@ def export_json():
         cursor.execute('''
             SELECT id, session_id, attempt_number, fullname, email, username,
                    terms_accepted, newsletter_subscribed, timestamp, ip_address,
-                   user_agent, referrer, form_fill_time, timezone
+                   user_agent, referrer, form_fill_time, timezone, plugins, do_not_track
             FROM registration_attempts
             WHERE timestamp > datetime('now', '-{} days')
             ORDER BY timestamp DESC
@@ -806,7 +852,8 @@ def metrics():
         conn.close()
 
         # Return Prometheus format
-        metrics_text = f"""# HELP honeypot_login_attempts_24h Login attempts in last 24 hours
+        metrics_text = f"""
+# HELP honeypot_login_attempts_24h Login attempts in last 24 hours
 # TYPE honeypot_login_attempts_24h counter
 honeypot_login_attempts_24h {metrics_data[0] or 0}
 
@@ -834,7 +881,7 @@ honeypot_unique_ips_24h {metrics_data[3] or 0}
 def serve_static(filename):
     """Serve static files with security checks."""
     # Only allow specific file extensions
-    allowed_extensions = {'.html', '.css', '.js', '.ico', '.txt'}
+    allowed_extensions = {'.html', '.css', '.js', '.ico', '.txt', '.svg'}
     if not any(filename.lower().endswith(ext) for ext in allowed_extensions):
         abort(404)
 
@@ -868,6 +915,8 @@ def internal_error(error):
     """Handle 500 errors."""
     app.logger.error(f"Internal server error: {error}")
     return jsonify({'error': 'Internal server error'}), 500
+
+init_database()
 
 if __name__ == '__main__':
     # Validate configuration

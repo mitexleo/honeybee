@@ -1,11 +1,4 @@
-{
-    # Get domain from environment variable, default to localhost
-    vars {
-        domain {$DOMAIN:-localhost}
-    }
-}
-
-{$domain} {
+{$DOMAIN:-localhost} {
     # Automatic HTTPS with Let's Encrypt
     # Caddy will automatically obtain and renew SSL certificates
 
