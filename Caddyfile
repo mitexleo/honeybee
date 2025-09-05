@@ -1,4 +1,4 @@
-{$DOMAIN:-localhost} {
+nextcloud.horlacher.ca {
     # Automatic HTTPS with Let's Encrypt
     # Caddy will automatically obtain and renew SSL certificates
 
