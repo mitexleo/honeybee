@@ -12,7 +12,7 @@ import secrets
 import time
 from datetime import datetime, timezone
 from functools import wraps
-from flask import Flask, request, jsonify, send_from_directory, redirect, url_for, abort
+from flask import Flask, request, jsonify, send_from_directory, redirect, url_for, abort, Response, make_response
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -77,6 +77,16 @@ file_handler.setFormatter(logging.Formatter(
 ))
 file_handler.setLevel(logging.INFO)
 app.logger.addHandler(file_handler)
+
+# Import and register routes
+try:
+    from routes import register_routes
+    register_routes(app)
+    app.logger.info("Routes registered successfully")
+except ImportError as e:
+    app.logger.warning(f"Could not import routes: {e}")
+except Exception as e:
+    app.logger.error(f"Error registering routes: {e}")
 
 # Security headers middleware
 @app.after_request
@@ -344,7 +354,7 @@ def require_admin_auth(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         auth = request.authorization
-        if not auth or not check_password_hash(
+        if not auth or not auth.password or not check_password_hash(
             generate_password_hash(ADMIN_PASSWORD), auth.password) or auth.username != ADMIN_USERNAME:
             return ('Authentication required', 401, {
                 'WWW-Authenticate': 'Basic realm="Honeypot Admin"'
@@ -619,215 +629,7 @@ def client_ip():
     """Return client IP address."""
     return jsonify({'ip': get_client_ip()})
 
-@app.route('/admin')
-@require_admin_auth
-@limiter.limit("30 per hour")
-def admin_dashboard():
-    """Secure admin dashboard with pagination."""
-    try:
-        page = request.args.get('page', 1, type=int)
-        per_page = min(request.args.get('per_page', 50, type=int), 100)
-        offset = (page - 1) * per_page
-
-        conn = sqlite3.connect(DATABASE_PATH)
-        cursor = conn.cursor()
-
-        # Get recent login attempts with pagination
-        cursor.execute('''
-            SELECT username, ip_address, timestamp, user_agent, attempt_number, screen_info, browser_info, timezone, plugins, do_not_track
-            FROM login_attempts
-            ORDER BY timestamp DESC
-            LIMIT ? OFFSET ?
-        ''', (per_page, offset))
-        login_attempts = cursor.fetchall()
-
-        # Get recent registration attempts with pagination
-        cursor.execute('''
-            SELECT fullname, email, username, ip_address, timestamp
-            FROM registration_attempts
-            ORDER BY timestamp DESC
-            LIMIT ? OFFSET ?
-        ''', (per_page, offset))
-        registration_attempts = cursor.fetchall()
-
-        # Get session statistics
-        cursor.execute('''
-            SELECT
-                COUNT(*) as total_sessions,
-                COUNT(DISTINCT ip_address) as unique_ips,
-                COUNT(DISTINCT country) as countries,
-                COUNT(CASE WHEN last_seen > datetime('now', '-1 hour') THEN 1 END) as recent_sessions
-            FROM sessions
-        ''')
-        stats = cursor.fetchone()
-
-        conn.close()
-
-        # Generate secure HTML response
-        html_parts = [
-            '<!DOCTYPE html>',
-            '<html lang="en">',
-            '<head>',
-            '<meta charset="UTF-8">',
-            '<meta name="viewport" content="width=device-width, initial-scale=1.0">',
-            '<title>Honeypot Dashboard</title>',
-            '<style>',
-            'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 20px; background: #f5f5f5; }',
-            '.container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }',
-            'table { border-collapse: collapse; width: 100%; margin: 20px 0; }',
-            'th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }',
-            'th { background: #f8f9fa; font-weight: 600; }',
-            '.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 20px 0; }',
-            '.stat-card { background: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center; }',
-            '.stat-number { font-size: 2em; font-weight: bold; color: #dc3545; }',
-            '.danger { background-color: #fff5f5; }',
-            '.warning { color: #856404; background: #fff3cd; padding: 15px; border-radius: 4px; margin: 20px 0; }',
-            '.timestamp { font-family: monospace; font-size: 0.9em; }',
-            '.ip { font-weight: bold; color: #dc3545; }',
-            '.username { font-weight: bold; color: #6f42c1; }',
-            '</style>',
-            '</head>',
-            '<body>',
-            '<div class="container">',
-            '<h1>🍯 Nextcloud Honeypot Dashboard</h1>',
-            f'<div class="warning">⚠️ Security Alert: This system has detected <strong>{stats[0]}</strong> honeypot interactions from <strong>{stats[1]}</strong> unique IP addresses.</div>',
-            '<div class="stats">',
-            f'<div class="stat-card"><div class="stat-number">{stats[0] or 0}</div><div>Total Sessions</div></div>',
-            f'<div class="stat-card"><div class="stat-number">{stats[1] or 0}</div><div>Unique IPs</div></div>',
-            f'<div class="stat-card"><div class="stat-number">{stats[2] or 0}</div><div>Countries</div></div>',
-            f'<div class="stat-card"><div class="stat-number">{stats[3] or 0}</div><div>Recent (1hr)</div></div>',
-            '</div>',
-            '<h2>🚨 Recent Login Attempts</h2>',
-            '<table>',
-            '<tr><th>Timestamp</th><th>IP Address</th><th>Username</th><th>Attempts</th><th>User Agent</th><th>Screen Info</th><th>Browser Info</th><th>Timezone</th><th>Plugins</th><th>DNT</th></tr>'
-        ]
-
-        for attempt in login_attempts:
-            username, ip, timestamp, user_agent, attempt_num, screen_info, browser_info, timezone, plugins, do_not_track = attempt
-            # Escape HTML to prevent XSS
-            username = bleach.clean(username, tags=[], strip=True)
-            user_agent = bleach.clean(user_agent[:100], tags=[], strip=True)
-
-            html_parts.append(
-                f'<tr class="danger">'
-                f'<td class="timestamp">{timestamp}</td>'
-                f'<td class="ip">{ip}</td>'
-                f'<td class="username">{username}</td>'
-                f'<td>{attempt_num}</td>'
-                f'<td>{user_agent}...</td>'
-                f'<td>{screen_info}</td>'
-                f'<td>{browser_info}</td>'
-                f'<td>{timezone}</td>'
-                f'<td>{plugins}</td>'
-                f'<td>{do_not_track}</td>'
-                f'</tr>'
-            )
-
-        html_parts.extend([
-            '</table>',
-            '<h2>📝 Recent Registration Attempts</h2>',
-            '<table>',
-            '<tr><th>Timestamp</th><th>IP Address</th><th>Full Name</th><th>Email</th><th>Username</th></tr>'
-        ])
-
-        for attempt in registration_attempts:
-            fullname, email, username, ip, timestamp = attempt
-            # Escape HTML
-            fullname = bleach.clean(fullname, tags=[], strip=True)
-            email = bleach.clean(email, tags=[], strip=True)
-            username = bleach.clean(username, tags=[], strip=True)
-
-            html_parts.append(
-                f'<tr class="danger">'
-                f'<td class="timestamp">{timestamp}</td>'
-                f'<td class="ip">{ip}</td>'
-                f'<td>{fullname}</td>'
-                f'<td>{email}</td>'
-                f'<td class="username">{username}</td>'
-                f'</tr>'
-            )
-
-        html_parts.extend([
-            '</table>',
-            f'<p><small>Page {page} | <a href="?page={page+1}">Next Page</a></small></p>',
-            '<div class="warning">',
-            '<strong>⚠️ SECURITY NOTICE:</strong> This is a honeypot system. All interactions are logged for security analysis. ',
-            'If you are seeing this dashboard, ensure you have proper authorization to access this system.',
-            '</div>',
-            '</div>',
-            '</body>',
-            '</html>'
-        ])
-
-        return '\n'.join(html_parts)
-
-    except Exception as e:
-        app.logger.error(f"Dashboard error: {e}")
-        return f"Dashboard error: {e}", 500
-
-@app.route('/api/export/json')
-@require_admin_auth
-@limiter.limit("5 per hour")
-def export_json():
-    """Export honeypot data as JSON with limits."""
-    try:
-        # Add date range limits to prevent massive exports
-        days_back = min(int(request.args.get('days', 30)), 90)  # Max 90 days
-
-        conn = sqlite3.connect(DATABASE_PATH)
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-
-        data = {
-            'export_timestamp': datetime.now(timezone.utc).isoformat(),
-            'export_period_days': days_back
-        }
-
-        # Export recent sessions only
-        cursor.execute('''
-            SELECT * FROM sessions
-            WHERE last_seen > datetime('now', '-{} days')
-            ORDER BY last_seen DESC
-        '''.format(days_back))
-        data['sessions'] = [dict(row) for row in cursor.fetchall()]
-
-        # Export recent login attempts
-        cursor.execute('''
-            SELECT id, session_id, attempt_number, username, remember_me, timestamp,
-                   ip_address, user_agent, referrer, form_fill_time, timezone, plugins, do_not_track
-            FROM login_attempts
-            WHERE timestamp > datetime('now', '-{} days')
-            ORDER BY timestamp DESC
-        '''.format(days_back))
-        data['login_attempts'] = [dict(row) for row in cursor.fetchall()]
-
-        # Export recent registration attempts (excluding password hashes)
-        cursor.execute('''
-            SELECT id, session_id, attempt_number, fullname, email, username,
-                   terms_accepted, newsletter_subscribed, timestamp, ip_address,
-                   user_agent, referrer, form_fill_time, timezone, plugins, do_not_track
-            FROM registration_attempts
-            WHERE timestamp > datetime('now', '-{} days')
-            ORDER BY timestamp DESC
-        '''.format(days_back))
-        data['registration_attempts'] = [dict(row) for row in cursor.fetchall()]
-
-        # Export recent activity log (limited)
-        cursor.execute('''
-            SELECT id, session_id, activity_type, timestamp, ip_address
-            FROM activity_log
-            WHERE timestamp > datetime('now', '-{} days')
-            ORDER BY timestamp DESC
-            LIMIT 1000
-        '''.format(days_back))
-        data['activity_log'] = [dict(row) for row in cursor.fetchall()]
-
-        conn.close()
-        return jsonify(data)
-
-    except Exception as e:
-        app.logger.error(f"Export error: {e}")
-        return jsonify({'error': str(e)}), 500
+# Dashboard and export routes are now handled by routes.py
 
 # Metrics endpoint for monitoring
 @app.route('/api/metrics')
