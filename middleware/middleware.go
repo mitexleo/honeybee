@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"honeybee/utils"
 	"net/http"
 	"os"
@@ -16,7 +17,7 @@ func SecurityHeaders() gin.HandlerFunc {
 		c.Header("X-Frame-Options", "DENY")
 		c.Header("X-XSS-Protection", "1; mode=block")
 		c.Header("Referrer-Policy", "strict-origin-when-cross-origin")
-		c.Header("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data:; connect-src 'self' *; font-src https://fonts.gstatic.com;")
+		c.Header("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data:; media-src 'self' data:; connect-src 'self' *; font-src https://fonts.gstatic.com;")
 		if c.Request.TLS != nil {
 			c.Header("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
 		}
@@ -65,10 +66,13 @@ func RequireJWTAuth() gin.HandlerFunc {
 		}
 		username, err := utils.ValidateJWT(tokenString)
 		if err != nil || username != utils.AdminUsername {
+			fmt.Printf("JWT validation failed: token=%s, err=%v, username=%s, expected=%s\n",
+				tokenString, err, username, utils.AdminUsername)
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
 			c.Abort()
 			return
 		}
+		fmt.Printf("JWT validation successful: username=%s\n", username)
 		c.Next()
 	}
 }

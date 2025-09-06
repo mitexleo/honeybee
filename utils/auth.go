@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"os"
 	"time"
 
@@ -71,8 +72,20 @@ type Claims struct {
 // AuthenticateUser checks if provided credentials are valid
 func AuthenticateUser(username, password string) bool {
 	if username == AdminUsername {
+		// First try to compare as bcrypt hash
 		err := bcrypt.CompareHashAndPassword([]byte(AdminPassword), []byte(password))
-		return err == nil
+		if err == nil {
+			return true
+		}
+
+		// If that fails, check if AdminPassword is plain text (for backward compatibility)
+		if AdminPassword == password {
+			return true
+		}
+
+		// Debug: log authentication attempt details
+		fmt.Printf("Auth failed: username=%s, provided_pass=%s, stored_pass=%s, bcrypt_err=%v\n",
+			username, password, AdminPassword, err)
 	}
 	return false
 }

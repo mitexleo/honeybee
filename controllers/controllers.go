@@ -14,7 +14,6 @@ import (
 	"honeybee/utils"
 
 	"github.com/gin-gonic/gin"
-	"golang.org/x/crypto/bcrypt"
 )
 
 // Login handler for JWT authentication
@@ -28,14 +27,16 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	if creds.Username == utils.AdminUsername && bcrypt.CompareHashAndPassword([]byte(utils.AdminPassword), []byte(creds.Password)) == nil {
+	if utils.AuthenticateUser(creds.Username, creds.Password) {
 		token, err := utils.GenerateJWT(creds.Username)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
 			return
 		}
+		fmt.Printf("Login successful: username=%s, token=%s\n", creds.Username, token)
 		c.JSON(http.StatusOK, gin.H{"token": token})
 	} else {
+		fmt.Printf("Login failed: username=%s\n", creds.Username)
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 	}
 }
