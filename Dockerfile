@@ -34,8 +34,8 @@ RUN CGO_ENABLED=1 GOOS=linux go build -mod=vendor -a -installsuffix cgo -o honey
 # Production stage
 FROM alpine:latest
 
-# Install ca-certificates, tzdata, curl, and gcc for CGO runtime
-RUN apk --no-cache add ca-certificates tzdata curl gcc
+# Install ca-certificates, tzdata, curl, and SQLite runtime library for CGO
+RUN apk --no-cache add ca-certificates tzdata curl
 
 # Create non-root user
 RUN addgroup -g 1000 honeypot && \
