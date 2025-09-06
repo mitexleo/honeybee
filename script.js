@@ -28,6 +28,9 @@ document.addEventListener("DOMContentLoaded", function () {
   let webRTCIPEvents = [];
   let geolocationEvents = [];
   let behaviorData = {};
+  let activityBatch = [];
+  const MAX_BATCH_SIZE = 5;
+  let batchTimer = null;
 
   initializePage();
 
@@ -875,24 +878,48 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function logActivity(activity_type, data) {
-    sendToHoneypotServer(activity_type, data);
+    const activity = {
+      type: activity_type,
+      data: data,
+      timestamp: new Date().toISOString(),
+    };
+    activityBatch.push(activity);
+
+    if (activityBatch.length >= MAX_BATCH_SIZE) {
+      flushBatch();
+    } else {
+      scheduleBatchFlush();
+    }
   }
 
-  function sendToHoneypotServer(activity_type, data) {
-    fetch("/api/honeypot/log", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        type: activity_type,
-        data: data,
-        timestamp: new Date().toISOString(),
-      }),
-    }).catch((error) => {
-      console.error("Failed to log to server:", error);
-    });
-  }
+function scheduleBatchFlush() {
+  if (batchTimer) clearTimeout(batchTimer);
+  batchTimer = setTimeout(flushBatch, 1000);
+}
+
+function flushBatch() {
+  if (activityBatch.length === 0) return;
+
+  const batchToSend = [...activityBatch];
+  activityBatch = [];
+
+  fetch("/api/honeypot/log", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      type: "batch",
+      data: batchToSend,
+    }),
+  }).catch((error) => {
+    console.error("Failed to log batch to server:", error);
+    // Optional: retry logic or store failed batches
+  });
+
+  if (batchTimer) clearTimeout(batchTimer);
+  batchTimer = null;
+}
 
   // Initialize geolocation collection (if user allows)
   if ("geolocation" in navigator) {

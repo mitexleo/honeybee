@@ -85,9 +85,7 @@ except Exception as e:
 def add_security_headers(response):
     """Add security headers to all responses."""
     # CORS headers
-    response.headers['Access-Control-Allow-Origin'] = '*'
-    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
-    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+
 
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-Frame-Options'] = 'DENY'
@@ -385,12 +383,7 @@ def health_check():
 def log_honeypot_activity():
     """Log honeypot activity with enhanced security."""
     # Handle CORS preflight requests
-    if request.method == 'OPTIONS':
-        response = jsonify({'status': 'ok'})
-        response.headers['Access-Control-Allow-Origin'] = '*'
-        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
-        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
-        return response
+
 
     try:
         # Validate content type
@@ -407,12 +400,42 @@ def log_honeypot_activity():
         if not activity_type:
             return jsonify({'error': 'Activity type required'}), 400
 
+        ip_address = get_client_ip()
+        user_agent = sanitize_input(request.headers.get('User-Agent', ''), 500)
+
+        if activity_type == 'batch':
+            if not isinstance(activity_data, list):
+                return jsonify({'error': 'Batch data must be a list'}), 400
+
+            for item in activity_data:
+                item_type = sanitize_input(item.get('type', ''), 50)
+                item_data = item.get('data', {})
+                item_timestamp = item.get('timestamp')  # Optional, can use for logging if needed
+
+                if not item_type:
+                    continue
+
+                session_id = sanitize_input(item_data.get('session_id', ''), 100)
+                if not validate_session_id(session_id):
+                    continue
+
+                if item_type == 'login_attempt':
+                    log_login_attempt(item_data, ip_address)
+                elif item_type == 'registration_attempt':
+                    log_registration_attempt(item_data, ip_address)
+                elif item_type == 'fingerprint':
+                    log_fingerprint(session_id, item_data, ip_address)
+                else:
+                    log_general_activity(session_id, item_type, item_data, ip_address)
+
+                app.logger.warning(f"HONEYPOT {item_type}: {session_id} from {ip_address}")
+
+            return jsonify({'status': 'batch logged'}), 200
+
+        # Non-batch handling
         session_id = sanitize_input(activity_data.get('session_id', ''), 100)
         if not validate_session_id(session_id):
             return jsonify({'error': 'Invalid session ID'}), 400
-
-        ip_address = get_client_ip()
-        user_agent = sanitize_input(request.headers.get('User-Agent', ''), 500)
 
         # Handle different activity types with validation
         if activity_type == 'login_attempt':
@@ -429,7 +452,6 @@ def log_honeypot_activity():
             if not log_general_activity(session_id, activity_type, activity_data, ip_address):
                 return jsonify({'error': 'Failed to log activity'}), 500
 
-        # Log suspicious activity
         app.logger.warning(f"HONEYPOT {activity_type}: {session_id} from {ip_address}")
 
         return jsonify({'status': 'logged'}), 200
