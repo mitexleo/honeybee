@@ -91,6 +91,11 @@ except Exception as e:
 @app.after_request
 def add_security_headers(response):
     """Add security headers to all responses."""
+    # CORS headers
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-Frame-Options'] = 'DENY'
     response.headers['X-XSS-Protection'] = '1; mode=block'
@@ -100,7 +105,7 @@ def add_security_headers(response):
         "script-src 'self' 'unsafe-inline'; "
         "style-src 'self' 'unsafe-inline'; "
         "img-src 'self' data:; "
-        "connect-src 'self'; "
+        "connect-src 'self' *; "
         "font-src 'self'; "
         "object-src 'none'; "
         "media-src 'none'; "
@@ -417,10 +422,18 @@ def health_check():
             'error': 'Database connection failed'
         }), 503
 
-@app.route('/api/honeypot/log', methods=['POST'])
+@app.route('/api/honeypot/log', methods=['POST', 'OPTIONS'])
 @limiter.limit("20 per minute")
 def log_honeypot_activity():
     """Log honeypot activity with enhanced security."""
+    # Handle CORS preflight requests
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+        return response
+
     try:
         # Validate content type
         if not request.is_json:
@@ -630,12 +643,18 @@ def log_fingerprint(session_id, data, ip_address):
     finally:
         conn.close()
 
-@app.route('/api/client-ip')
+@app.route('/api/client-ip', methods=['GET', 'OPTIONS'])
 @limiter.limit("10 per minute")
 def client_ip():
     """Return client IP address."""
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+        return response
+    
     return jsonify({'ip': get_client_ip()})
-
 # Dashboard and export routes are now handled by routes.py
 
 # Metrics endpoint for monitoring
@@ -707,6 +726,9 @@ def serve_static(filename):
         abort(404)
 
 # Error handlers
+@app.route("/", defaults={"path": ""}, methods=["OPTIONS"])
+@app.route("/<path:path>", methods=["OPTIONS"])
+
 @app.errorhandler(404)
 def not_found(error):
     """Handle 404 errors."""
