@@ -26,7 +26,13 @@ COPY middleware/ ./middleware/
 
 # Build the binary with static linking
 ENV GO111MODULE=on
-RUN CGO_ENABLED=1 GOOS=linux go build -o honeypot main.go
+RUN go clean -cache && CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -v -o honeypot main.go
+
+# Make sure binary is executable
+RUN chmod +x honeypot
+
+# Verify binary was created
+RUN ls -la honeypot
 
 # Production stage
 FROM alpine:latest
