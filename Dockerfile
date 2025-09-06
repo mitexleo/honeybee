@@ -1,10 +1,10 @@
 # Multi-stage Dockerfile for Nextcloud Honeypot (Go)
 
-# Builder stage with specific Go version matching toolchain
-FROM golang:1.24.6-alpine AS builder
+# Builder stage with Debian-based Go for better CGO compatibility
+FROM golang:1.24.6-bookworm AS builder
 
-# Install git and ca-certificates for dependencies
-RUN apk add --no-cache git ca-certificates
+# Install build dependencies
+RUN apt-get update && apt-get install -y git ca-certificates && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app
@@ -24,9 +24,9 @@ COPY routes/ ./routes/
 COPY utils/ ./utils/
 COPY middleware/ ./middleware/
 
-# Build the binary without CGO for Alpine compatibility
+# Build the binary with CGO enabled
 ENV GO111MODULE=on
-ENV CGO_ENABLED=0
+ENV CGO_ENABLED=1
 RUN go build -o honeypot main.go
 
 # Make sure binary is executable
@@ -35,11 +35,11 @@ RUN chmod +x honeypot
 # Minimal verification without execution
 RUN test -f honeypot && echo "Binary created successfully"
 
-# Production stage - use the same Alpine version as builder
+# Production stage - use Alpine for minimal footprint
 FROM alpine:3.21
 
-# Install ca-certificates and tzdata only
-RUN apk --no-cache add ca-certificates tzdata
+# Install ca-certificates, tzdata, and SQLite runtime dependencies
+RUN apk --no-cache add ca-certificates tzdata libc6-compat
 
 # Create non-root user
 RUN addgroup -g 1000 honeypot && \
