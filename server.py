@@ -39,20 +39,14 @@ ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'change_this_password')
 SECRET_KEY = os.environ.get('SECRET_KEY', secrets.token_hex(32))
 MAX_LOG_SIZE = int(os.environ.get('MAX_LOG_SIZE', 10 * 1024 * 1024))
 BACKUP_COUNT = int(os.environ.get('BACKUP_COUNT', 5))
-RATE_LIMIT = os.environ.get('RATE_LIMIT', '100 per hour')
+
 MAX_CONTENT_LENGTH = int(os.environ.get('MAX_CONTENT_LENGTH', 1024 * 1024))  # 1MB
 
 app.config['SECRET_KEY'] = SECRET_KEY
 app.config['MAX_CONTENT_LENGTH'] = MAX_CONTENT_LENGTH
 
 # Initialize rate limiter
-limiter = Limiter(
-    key_func=get_remote_address,
-    default_limits=None,
-    storage_uri="memory://"
-)
-limiter.init_app(app)
-limiter.request_filter(lambda: request.remote_addr == "127.0.0.1")
+
 
 # Setup secure logging
 logging.basicConfig(
@@ -691,11 +685,7 @@ def not_found(error):
     app.logger.info(f"404 error for {request.url} from {get_client_ip()}")
     return jsonify({'error': 'Not found'}), 404
 
-@app.errorhandler(429)
-def rate_limit_handler(e):
-    """Handle rate limit errors."""
-    app.logger.warning(f"Rate limit exceeded from {get_client_ip()}")
-    return jsonify({'error': 'Rate limit exceeded. Please try again later.'}), 429
+
 
 @app.errorhandler(500)
 def internal_error(error):
@@ -710,6 +700,8 @@ if __name__ == '__main__':
     if ADMIN_PASSWORD == 'change_this_password':
         print("⚠️  WARNING: Please change the default admin password!")
         print("   Set ADMIN_PASSWORD environment variable")
+
+    print("⚠️  WARNING: Rate limiting is disabled. This is not recommended for production.")
 
     # Initialize database on startup
     init_database()
