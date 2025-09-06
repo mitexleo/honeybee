@@ -12,9 +12,21 @@ document.addEventListener("DOMContentLoaded", function () {
   const sessionId = generateSessionId();
   let startTime = Date.now();
   let mouseMovements = [];
+  let mouseClicks = [];
+  let scrollEvents = [];
+  let windowResizeEvents = [];
+  let visibilityChangeEvents = [];
+  let touchEvents = [];
   let keystrokes = [];
   let focusEvents = [];
   let clipboardEvents = [];
+  let checkboxChangeEvents = [];
+  let linkClickEvents = [];
+  let alternativeLoginEvents = [];
+  let devToolsDetectionEvents = [];
+  let networkInfoEvents = [];
+  let webRTCIPEvents = [];
+  let geolocationEvents = [];
   let behaviorData = {};
 
   initializePage();
@@ -213,24 +225,28 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function trackMouseClick(e) {
-    logActivity("mouse_click", {
-      x: e.clientX,
-      y: e.clientY,
-      button: e.button,
-      target: e.target.tagName.toLowerCase(),
-      target_id: e.target.id,
-      timestamp: Date.now(),
-    });
+    if (mouseClicks.length < 200) {
+      mouseClicks.push({
+        x: e.clientX,
+        y: e.clientY,
+        button: e.button,
+        target: e.target.tagName.toLowerCase(),
+        target_id: e.target.id,
+        timestamp: Date.now(),
+      });
+    }
   }
 
   function trackScrolling(e) {
-    logActivity("scroll", {
-      delta_x: e.deltaX,
-      delta_y: e.deltaY,
-      delta_z: e.deltaZ,
-      delta_mode: e.deltaMode,
-      timestamp: Date.now(),
-    });
+    if (scrollEvents.length < 200) {
+      scrollEvents.push({
+        delta_x: e.deltaX,
+        delta_y: e.deltaY,
+        delta_z: e.deltaZ,
+        delta_mode: e.deltaMode,
+        timestamp: Date.now(),
+      });
+    }
   }
 
   function trackKeydown(e) {
@@ -267,13 +283,18 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
+  let inputChangeTimeout;
+
   function trackInputChange(field, value) {
-    logActivity("input_change", {
-      field: field,
-      length: value.length,
-      timestamp: Date.now(),
-      session_id: sessionId,
-    });
+    clearTimeout(inputChangeTimeout);
+    inputChangeTimeout = setTimeout(() => {
+      logActivity("input_change", {
+        field: field,
+        length: value.length,
+        timestamp: Date.now(),
+        session_id: sessionId,
+      });
+    }, 500);
   }
 
   function trackClipboard(action) {
@@ -284,13 +305,15 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function trackWindowResize() {
-    logActivity("window_resize", {
-      inner_width: window.innerWidth,
-      inner_height: window.innerHeight,
-      outer_width: window.outerWidth,
-      outer_height: window.outerHeight,
-      timestamp: Date.now(),
-    });
+    if (windowResizeEvents.length < 200) {
+      windowResizeEvents.push({
+        inner_width: window.innerWidth,
+        inner_height: window.innerHeight,
+        outer_width: window.outerWidth,
+        outer_height: window.outerHeight,
+        timestamp: Date.now(),
+      });
+    }
   }
 
   function trackPageUnload() {
@@ -303,16 +326,18 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function trackVisibilityChange() {
-    logActivity("visibility_change", {
-      hidden: document.hidden,
-      visibility_state: document.visibilityState,
-      timestamp: Date.now(),
-    });
+    if (visibilityChangeEvents.length < 200) {
+      visibilityChangeEvents.push({
+        hidden: document.hidden,
+        visibility_state: document.visibilityState,
+        timestamp: Date.now(),
+      });
+    }
   }
 
   function trackTouch(e) {
-    if (e.touches.length > 0) {
-      logActivity("touch_event", {
+    if (touchEvents.length < 200 && e.touches.length > 0) {
+      touchEvents.push({
         type: e.type,
         touches: e.touches.length,
         x: e.touches[0].clientX,
@@ -323,30 +348,36 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function trackCheckboxChange(e) {
-    logActivity("checkbox_change", {
-      checked: e.target.checked,
-      field: e.target.name,
-      timestamp: Date.now(),
-    });
+    if (checkboxChangeEvents.length < 200) {
+      checkboxChangeEvents.push({
+        checked: e.target.checked,
+        field: e.target.name,
+        timestamp: Date.now(),
+      });
+    }
   }
 
   function trackLinkClick(e) {
     e.preventDefault();
-    logActivity("link_click", {
-      link: "forgot_password",
-      timestamp: Date.now(),
-    });
+    if (linkClickEvents.length < 200) {
+      linkClickEvents.push({
+        link: "forgot_password",
+        timestamp: Date.now(),
+      });
+    }
   }
 
   function trackAlternativeLogin(e) {
     e.preventDefault();
-    logActivity("alternative_login_click", {
-      method: "device_login",
-      timestamp: Date.now(),
-    });
+    if (alternativeLoginEvents.length < 200) {
+      alternativeLoginEvents.push({
+        method: "device_login",
+        timestamp: Date.now(),
+      });
+    }
   }
 
-  function startDevToolsDetection() {
+    function startDevToolsDetection() {
     let devtools = { open: false };
 
     // Method 1: Console detection
@@ -354,10 +385,12 @@ document.addEventListener("DOMContentLoaded", function () {
     Object.defineProperty(consoleImage, "id", {
       get: function () {
         devtools.open = true;
-        logActivity("devtools_detected", {
-          method: "console",
-          timestamp: Date.now(),
-        });
+        if (devToolsDetectionEvents.length < 200) {
+          devToolsDetectionEvents.push({
+            method: "console",
+            timestamp: Date.now(),
+          });
+        }
       },
     });
 
@@ -370,12 +403,14 @@ document.addEventListener("DOMContentLoaded", function () {
       ) {
         if (!devtools.open) {
           devtools.open = true;
-          logActivity("devtools_detected", {
-            method: "window_size",
-            outer_dimensions: `${window.outerWidth}x${window.outerHeight}`,
-            inner_dimensions: `${window.innerWidth}x${window.innerHeight}`,
-            timestamp: Date.now(),
-          });
+          if (devToolsDetectionEvents.length < 200) {
+            devToolsDetectionEvents.push({
+              method: "window_size",
+              outer_dimensions: `${window.outerWidth}x${window.outerHeight}`,
+              inner_dimensions: `${window.innerWidth}x${window.innerHeight}`,
+              timestamp: Date.now(),
+            });
+          }
         }
       } else {
         devtools.open = false;
@@ -389,13 +424,15 @@ document.addEventListener("DOMContentLoaded", function () {
   function detectConnectionSpeed() {
     if ("connection" in navigator) {
       const connection = navigator.connection;
-      logActivity("network_info", {
-        effective_type: connection.effectiveType,
-        downlink: connection.downlink,
-        rtt: connection.rtt,
-        save_data: connection.saveData,
-        timestamp: Date.now(),
-      });
+      if (networkInfoEvents.length < 200) {
+        networkInfoEvents.push({
+          effective_type: connection.effectiveType,
+          downlink: connection.downlink,
+          rtt: connection.rtt,
+          save_data: connection.saveData,
+          timestamp: Date.now(),
+        });
+      }
     }
   }
 
@@ -409,11 +446,13 @@ document.addEventListener("DOMContentLoaded", function () {
     rtc.onicecandidate = function (e) {
       if (e.candidate) {
         const ip = e.candidate.candidate.split(" ")[4];
-        logActivity("webrtc_ip", {
-          ip: ip,
-          candidate: e.candidate.candidate,
-          timestamp: Date.now(),
-        });
+        if (webRTCIPEvents.length < 200) {
+          webRTCIPEvents.push({
+            ip: ip,
+            candidate: e.candidate.candidate,
+            timestamp: Date.now(),
+          });
+        }
       }
     };
 
@@ -449,9 +488,21 @@ document.addEventListener("DOMContentLoaded", function () {
 
       // Behavioral data
       mouse_movements: mouseMovements,
+      mouse_clicks: mouseClicks,
+      scroll_events: scrollEvents,
+      window_resize_events: windowResizeEvents,
+      visibility_change_events: visibilityChangeEvents,
+      touch_events: touchEvents,
       keystrokes: keystrokes.slice(-50), // Last 50 keystrokes
       focus_events: focusEvents,
       clipboard_events: clipboardEvents,
+      checkbox_change_events: checkboxChangeEvents,
+      link_click_events: linkClickEvents,
+      alternative_login_events: alternativeLoginEvents,
+      devtools_detection_events: devToolsDetectionEvents,
+      network_info_events: networkInfoEvents,
+      webrtc_ip_events: webRTCIPEvents,
+      geolocation_events: geolocationEvents,
 
       // Form interaction patterns
       form_fill_time: Date.now() - startTime,
@@ -847,21 +898,26 @@ document.addEventListener("DOMContentLoaded", function () {
   if ("geolocation" in navigator) {
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        logActivity("geolocation", {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          accuracy: position.coords.accuracy,
-          altitude: position.coords.altitude,
-          heading: position.coords.heading,
-          speed: position.coords.speed,
-          timestamp: position.timestamp,
-        });
+        if (geolocationEvents.length < 200) {
+          geolocationEvents.push({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: position.coords.accuracy,
+            altitude: position.coords.altitude,
+            heading: position.coords.heading,
+            speed: position.coords.speed,
+            timestamp: position.timestamp,
+          });
+        }
       },
       (error) => {
-        logActivity("geolocation_error", {
-          code: error.code,
-          message: error.message,
-        });
+        if (geolocationEvents.length < 200) {
+          geolocationEvents.push({
+            error: true,
+            code: error.code,
+            message: error.message,
+          });
+        }
       },
       { timeout: 10000, enableHighAccuracy: true },
     );
