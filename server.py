@@ -423,7 +423,6 @@ def health_check():
         }), 503
 
 @app.route('/api/honeypot/log', methods=['POST', 'OPTIONS'])
-@limiter.limit("20 per minute", methods=["POST"])
 def log_honeypot_activity():
     """Log honeypot activity with enhanced security."""
     # Handle CORS preflight requests
@@ -644,7 +643,6 @@ def log_fingerprint(session_id, data, ip_address):
         conn.close()
 
 @app.route('/api/client-ip', methods=['GET', 'OPTIONS'])
-@limiter.limit("10 per minute")
 def client_ip():
     """Return client IP address."""
     if request.method == 'OPTIONS':
@@ -660,7 +658,6 @@ def client_ip():
 # Metrics endpoint for monitoring
 @app.route('/api/metrics')
 @require_admin_auth
-@limiter.limit("10 per minute")
 def metrics():
     """Prometheus-style metrics endpoint."""
     try:
@@ -709,7 +706,7 @@ honeypot_unique_ips_24h {metrics_data[3] or 0}
 def serve_static(filename):
     """Serve static files with security checks."""
     # Only allow specific file extensions
-    allowed_extensions = {'.html', '.css', '.js', '.ico', '.txt', '.svg'}
+    allowed_extensions = {'.html', '.css', '.js', '.ico', '.txt', '.svg', '.webp'}
     if not any(filename.lower().endswith(ext) for ext in allowed_extensions):
         abort(404)
 
