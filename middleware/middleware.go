@@ -3,6 +3,7 @@ package middleware
 import (
 	"honeybee/utils"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -27,7 +28,8 @@ func SecurityHeaders() gin.HandlerFunc {
 func CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		origin := c.GetHeader("Origin")
-		allowedOrigins := []string{"https://your-domain.com", "http://localhost:3000"} // Add allowed origins
+		domain := os.Getenv("DOMAIN")
+		allowedOrigins := []string{"https://" + domain, "http://localhost:3000"} // Add allowed origins
 
 		for _, allowedOrigin := range allowedOrigins {
 			if origin == allowedOrigin {

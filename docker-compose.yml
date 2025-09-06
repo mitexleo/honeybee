@@ -18,6 +18,7 @@ services:
       - GEOIP_DB_PATH=${GEOIP_DB_PATH:-/app/data/GeoLite2-City.mmdb}
       - MAX_LOG_SIZE=${MAX_LOG_SIZE:-10485760}
       - BACKUP_COUNT=${BACKUP_COUNT:-5}
+      - DOMAIN=${DOMAIN:-localhost}
     volumes:
       - honeypot_data:/app/data
       - honeypot_logs:/app/logs
@@ -42,11 +43,12 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./start-caddy.sh:/usr/local/bin/start-caddy.sh:ro
       - caddy_data:/data
       - caddy_config:/config
     networks:
       - honeypot_network
+    command: sh -c "chmod +x /usr/local/bin/start-caddy.sh && /usr/local/bin/start-caddy.sh"
 networks:
   honeypot_network:
     driver: bridge
