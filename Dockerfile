@@ -27,7 +27,7 @@ COPY utils/ ./utils/
 COPY middleware/ ./middleware/
 
 # Build the binary with static linking
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o honeypot main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -mod=vendor -a -installsuffix cgo -o honeypot main.go
 
 # Production stage
 FROM alpine:latest
