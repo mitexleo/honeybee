@@ -48,11 +48,10 @@ A simple honeypot designed to mimic a Nextcloud login and registration system to
 
 ### 🔒 Security Features
 - **Secure database** - SQLite with proper permissions (0600)
-- **Rate limiting** - Prevents dashboard abuse (configurable)
-- **Basic authentication** - Admin dashboard protection
 - **Input sanitization** - XSS prevention on dashboard
 - **Logging rotation** - Automatic log file management
-- **Operational Security** - Minimal footprint, low resource requirements
+- **JWT authentication** - Secure token-based admin access
+- **CORS handling** - Properly configured for frontend-backend communication
 
 ### 🖥️ Admin Dashboard
 - **Live Monitoring** - Real-time view of login attempts
@@ -64,18 +63,34 @@ A simple honeypot designed to mimic a Nextcloud login and registration system to
 
 ```
 honeybee/
+├── config/
+│   └── config.go  # Configuration management with godotenv
+├── controllers/
+│   ├── controllers.go  # Route handlers
+├── routes/
+│   └── routes.go  # Route definitions
 ├── frontend/
 │   ├── dashboard.html
 │   ├── index.html
+│   ├── nextcloud.webp
 │   ├── register.html
 │   ├── register.js
 │   ├── script.js
-│   ├── styles.css
-│   └── nextcloud.webp
+│   └── styles.css
+├── middleware/
+│   └── middleware.go  # HTTP middleware for auth, CORS, security
+├── models/
+│   └── models.go  # Database models and init
+├── utils/
+│   ├── auth.go     # JWT and authentication utilities
+│   ├── helpers.go  # Helper functions for IP, geolocation
+│   ├── middleware.go  # Moved to middleware/ package
 ├── go.mod
 ├── go.sum
 ├── main.go
-├── .gitignore
+├── nginx.conf
+├── .env
+├── .env.example
 ├── GeoLite2-City.mmdb
 ├── LICENSE
 └── README.md
@@ -88,6 +103,7 @@ honeybee/
 - Modern web browser
 - 2GB RAM minimum
 - 10GB storage for logs
+- MaxMind GeoIP database (optional)
 
 ### Quick Start
 
@@ -102,35 +118,41 @@ honeybee/
    go mod download
    ```
 
-3. **Optional: Download GeoIP Database**
-   - Visit [MaxMind](https://www.maxmind.com/en/geolite2/signup)
-   - Download GeoLite2-City.mmdb
-   - Place it in the project directory
-
-4. **Configure environment** (optional)
+3. **Configure environment** (optional)
    ```bash
-   export ADMIN_USERNAME="admin"
-   export ADMIN_PASSWORD="secure_password_here"
-   export SECRET_KEY="your_secret_key_here"
-   export GEOIP_DB_PATH="GeoLite2-City.mmdb"
-   export MAX_LOG_SIZE=10485760
-   export BACKUP_COUNT=5
+   cp .env.example .env
+   nano .env
    ```
 
-5. **Build and start the server:**
+**Critical Configuration (.env):**
+```bash
+# Admin credentials for JWT
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=change_this_password
+JWT_SECRET=your_jwt_secret_key_here
+
+# Database and logging
+HONEYPOT_DB_PATH=data/honeypot.db
+HONEYPOT_LOG_FILE=honeypot.log
+
+# Geolocation (optional)
+GEOIP_DB_PATH=GeoLite2-City.mmdb
+
+# Other settings
+MAX_LOG_SIZE=10485760
+BACKUP_COUNT=5
+```
+
+4. **Build and start the server:**
    ```bash
    go build -o honeybee main.go
    ./honeybee
    ```
-   Or run directly:
-   ```bash
-   go run main.go
-   ```
 
-6. **Access the honeypot:**
+5. **Access the honeypot:**
    - Main login page: http://localhost:5000
    - Registration page: http://localhost:5000/register.html
-   - Admin dashboard: http://localhost:5000/admin
+   - Admin dashboard: http://localhost:5000/admin (requires JWT login)
 
 ## 🎯 Data Collection Capabilities
 
@@ -174,12 +196,18 @@ honeybee/
 
 ### Export Capabilities
 ```bash
-# Export formats available:
-GET /api/export/csv?type=all        # ZIP file with all data
-GET /api/export/csv?type=login      # Login attempts CSV
-GET /api/export/csv?type=register   # Registration attempts CSV
-GET /api/export/csv?type=sessions   # Session data CSV
-GET /api/export/json                # JSON format export
+# CSV exports
+GET /admin/export/csv?type=all        # ZIP file with all data
+GET /admin/export/csv?type=login      # Login attempts CSV
+
+# JSON export
+GET /admin/export/json                # JSON format export
+```
+
+#### Admin Dashboard
+```bash
+GET /admin               # Serves dashboard HTML (requires JWT)
+GET /admin/dashboard     # Dashboard data JSON (requires JWT)
 ```
 
 ## 🔒 Security Features
@@ -190,113 +218,249 @@ GET /api/export/json                # JSON format export
 - **Regular log rotation** to prevent disk space issues
 - **Secure database backups** if data is valuable
 
-### Network Security
-- **Firewall configuration** to limit access
-- **HTTPS deployment** for production use
-- **Rate limiting** to prevent abuse
-- **IP whitelisting** for admin access
-
-## Usage
-
-### Basic Monitoring
-
-1. **Start the server** and share the URL with suspected attackers
-2. **Monitor the admin dashboard** at `/admin`
-3. **Check logs** in the `logs/` directory
-4. **Export data** via `/api/export/json` endpoint
-
-### Advanced Analysis
-
-The honeypot logs extensive data for behavioral analysis:
-
-- **Timing Analysis**: How quickly forms are filled
-- **Mouse Patterns**: Movement tracking for bot detection
-- **Browser Fingerprinting**: Detailed technical profiling
-- **Multi-session Tracking**: Cross-visit behavior patterns
-
-## 📈 Analytics & Intelligence
-
-### Data Points Collected
-- **Authentication attempts**: 50+ data points per login
-- **Registration attempts**: 60+ data points per registration
-- **Session fingerprints**: 40+ browser/system characteristics
-- **Behavioral metrics**: Mouse, keyboard, and interaction patterns
-- **Network intelligence**: IP, geolocation, connection analysis
-
-### Use Cases
-- **Threat intelligence** - Understanding attacker TTPs
-- **Security research** - Academic and commercial research
-- **Incident response** - Attack pattern analysis
-- **Honeypot networks** - Integration with threat feeds
+### Authentication
+- **JWT tokens** for secure admin access
+- **Token expiration** configurable
+- **Password hashing** using bcrypt
 
 ## 🚀 Deployment Options
 
-### Development
+### Manual Deployment
+
+#### Prerequisites:
 ```bash
-go run main.go
-# Runs on localhost:5000
+# Linux/Mac
+Install Go 1.22+
 ```
 
-### Production
+#### Step 1: Setup Application
 ```bash
+# Clone and build
+cd /opt
+sudo mkdir honeypot && cd honeypot
+sudo chown $USER:$USER /opt/honeypot
+
+# Copy files and build
+go mod download
 go build -o honeybee main.go
+```
+
+#### Step 2: Configure Environment
+```bash
+# Copy and edit configuration
+cp .env.example .env
+nano .env
+```
+
+#### Step 3: Create User and Set Permissions
+```bash
+# Create dedicated user (optional)
+sudo useradd -r -s /bin/false honeypot
+sudo chown -R honeypot:honeypot /opt/honeypot
+```
+
+#### Step 4: Start the Service
+```bash
+# Run directly or create systemd service
 ./honeybee
 ```
 
-### Reverse Proxy Setup (Nginx example)
-```nginx
-server {
-    listen 80;
-    server_name your-honeypot.domain.com;
-    location / {
-        proxy_pass http://localhost:5000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
+### Docker Deployment
+
+#### Prerequisites:
+```bash
+# Install Docker and Docker Compose
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker $USER
+# Logout and login back in
+
+# Install Docker Compose (if not included)
+sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+```
+
+#### Step 1: Prepare Environment
+```bash
+# Copy project files
+cp .env.example .env
+nano .env  # Configure all environment variables - Docker Compose will read these
+
+# Update Caddyfile with your domain
+sed -i 's/your-domain.com/your-actual-domain.com/g' Caddyfile
+nano Caddyfile  # Ensure domain is correct
+
+# Optional: Download GeoIP database
+# wget https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-City&license_key=YOUR_LICENSE_KEY&suffix=tar.gz
+# Extract and place GeoLite2-City.mmdb in project root
+```
+
+#### Step 2: Deploy with Caddy (Automatic SSL)
+```bash
+# Build and run with automatic HTTPS
+# Docker Compose reads all config from .env (port, DB path, secrets, etc.)
+docker-compose up -d
+
+# Caddy will automatically obtain SSL certificates on first run
+# Check logs for certificate status
+docker-compose logs -f caddy
+```
+
+#### Monitoring:
+```bash
+# View honeypot logs
+docker-compose logs -f honeypot
+
+# Check Caddy logs
+docker-compose logs -f caddy
+```
+
+#### SSL and Domain Setup:
+- Replace `your-domain.com` in Caddyfile with your actual domain
+- DNS A/AAAA records must point to your server
+- Caddy handles SSL automatically via Let's Encrypt
+- Certificate renewal is automatic
+
+#### Backup:
+```bash
+# Backup data
+docker run --rm -v honeypot_honeypot_data:/data alpine tar czf - -C /data . > honeypot_backup.tar.gz
+```
+
+## 🔒 Security Configuration
+
+### **1. Change Default Credentials**
+```bash
+# Generate strong password
+openssl rand -base64 32
+
+# Generate secret key
+openssl rand -hex 32
+```
+
+### **2. Configure Firewall**
+```bash
+# UFW example
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+sudo ufw allow ssh
+sudo ufw allow 80
+sudo ufw allow 443
+sudo ufw enable
+```
+
+### **3. SSL/TLS Configuration**
+Caddy automatically handles SSL with Let's Encrypt. For custom certificates:
+
+```caddyfile
+your-domain.com {
+    tls /path/to/cert.pem /path/to/key.pem
+    # ... rest of configuration
 }
 ```
 
-## 📊 Sample Data Output
+### **4. Database Encryption (Optional)**
+```bash
+# Install sqlcipher
+sudo apt install sqlcipher
 
-### Login Attempt (CSV)
-```csv
-Timestamp,Session ID,Username,Password,IP Address,User Agent,Mouse Movements,Keystrokes,Country
-2024-01-15 14:30:22,session_abc123,admin,password123,192.168.1.100,Mozilla/5.0...,{"points": 156},{"average_interval": 120},United States
+# Encrypt existing database
+sqlcipher honeypot.db "PRAGMA key='your-encryption-key'; ATTACH DATABASE 'honeypot_encrypted.db' AS encrypted KEY 'your-encryption-key'; SELECT sqlcipher_export('encrypted'); DETACH DATABASE encrypted;"
 ```
 
-### Behavioral Analysis (JSON)
-```json
-{
-  "session_id": "session_abc123",
-  "typing_patterns": {
-    "average_interval": 120,
-    "rhythm_variance": 0.23,
-    "backspace_ratio": 0.15
-  },
-  "mouse_patterns": {
-    "total_distance": 2847,
-    "average_speed": 156.3,
-    "click_accuracy": 0.94
-  },
-  "fingerprint": {
-    "canvas_hash": "a1b2c3d4...",
-    "webgl_vendor": "NVIDIA Corporation",
-    "fonts_available": 47
-  }
-}
+## 📊 Monitoring and Maintenance
+
+### **1. Log Monitoring**
+```bash
+# View honeypot logs
+tail -f logs/honeypot.log
+
+# View Caddy access logs
+sudo journalctl -fu caddy
 ```
 
-## 🔧 Configuration Options
+### **2. Database Monitoring**
+```bash
+# Check database size
+ls -lh data/honeypot.db
+
+# View recent activity
+sqlite3 data/honeypot.db "SELECT COUNT(*) FROM login_attempts WHERE timestamp > datetime('now', '-1 day');"
+```
+
+## 🧪 Testing Your Deployment
+
+### **1. Local Testing**
+```bash
+# Test the server
+curl http://localhost:5000/health
+```
+
+### **2. Security Testing**
+```bash
+# Test security headers
+curl -I http://localhost:5000/
+```
+
+## 📝 Legal and Compliance
+
+### Important Considerations:
+
+1. **Deploy only on networks you own or have explicit permission to monitor**
+2. **Comply with local data protection laws (GDPR, CCPA, etc.)**
+3. **Implement appropriate data retention policies**
+4. **Document the purpose and scope of your honeypot**
+5. **Establish procedures for handling collected data**
+6. **Consider privacy implications and minimize data collection where possible**
+
+## 🐳 Docker Setup Summary
+
+- **Caddy**: Automatic HTTPS with Let's Encrypt
+- **Production Ready**: Graceful shutdown, health checks, security headers
+- **One Command**: `docker-compose up -d` for full deployment
+- **Volumes**: Data and logs persist across restarts
+- **Networking**: Isolated network for services
+
+---
+
+**Remember**: This honeypot is a powerful tool for detecting malicious activity. Use it responsibly and in accordance with applicable laws and regulations. Always prioritize the security and privacy of legitimate users.
+
+```
+
+#### Step 1: Deploy with Docker
+```bash
+# Build and run
+docker build -t honeypot .
+docker run -p 5000:5000 -v ./data:/app/data honeypot
+```
+
+#### Step 2: Using Docker Compose
+```bash
+# Basic deployment
+docker-compose up -d
+
+# Check status
+docker-compose logs -f honeypot
+```
+
+### Production Deployment Notes
+- Use reverse proxy (nginx/Caddy) for SSL
+- Configure firewall to limit access
+- Implement health checks
+- Set up monitoring and alerts
+- Regular data backups
+- Log aggregation
+
+## 🔒 Configuration Options
 
 ### Environment Variables
 ```bash
-HONEYPOT_DB_PATH=honeypot.db        # Database file path
-ADMIN_USERNAME=admin                # Dashboard username
-ADMIN_PASSWORD=secure123            # Dashboard password
-SECRET_KEY=random_secret_key        # Secret key for hashing
-GEOIP_DB_PATH=GeoLite2-City.mmdb   # GeoIP database path
-MAX_LOG_SIZE=10485760               # Log file size limit
-BACKUP_COUNT=5                      # Log rotation count
+ADMIN_USERNAME=admin                          # Admin username for JWT
+ADMIN_PASSWORD=secure_password_here          # Admin password for JWT
+JWT_SECRET=your_secret_jwt_key               # JWT signing key
+HONEYPOT_DB_PATH=data/honeypot.db             # Database file path
+GEOIP_DB_PATH=GeoLite2-City.mmdb             # GeoIP database path
+MAX_LOG_SIZE=10485760                        # Log file size limit
+BACKUP_COUNT=5                              # Log rotation count
 ```
 
 ### Database Schema
@@ -306,35 +470,44 @@ The system automatically creates tables for:
 - `registration_attempts` - Registration form submissions
 - `activity_log` - Detailed behavioral logs
 
-## 🚨 Legal & Ethical Considerations
+## ⚠️ Legal and Ethical Considerations
 
-### ⚖️ Legal Compliance
-- **Logging Disclosure**: Consider privacy laws in your jurisdiction
-- **Data Retention**: Implement appropriate data retention policies
-- **Terms of Service**: Display clear terms about data collection
-- **Geographic Restrictions**: Some regions may restrict honeypot deployment
+### Important Considerations:
+1. **Deploy only on networks you own or have explicit permission to monitor**
+2. **Comply with local data protection laws (GDPR, CCPA, etc.)**
+3. **Implement appropriate data retention policies**
+4. **Document the purpose and scope of your honeypot**
+5. **Establish procedures for handling collected data**
+6. **Consider privacy implications and minimize data collection where possible**
 
-### 🛡️ Responsible Use
-- **Research Purpose**: Intended for security research and threat intelligence
-- **No Entrapment**: Avoid targeting specific individuals
-- **Data Security**: Secure collected data appropriately
-- **Ethical Guidelines**: Follow responsible disclosure practices
-
-## 🔍 Troubleshooting
+## 📝 Troubleshooting
 
 ### Common Issues
-1. **Dashboard not loading**: Check authentication credentials
-2. **No data collection**: Verify JavaScript is enabled
-3. **Database errors**: Check file permissions (0600)
+1. **Dashboard not loading**: Ensure JWT token is valid
+2. **No data collection**: Verify frontend CORS and JS enabled
+3. **Database errors**: Check file permissions and paths
 4. **Export failures**: Ensure sufficient disk space
 
 ### Debug Mode
-Run with verbose logging or use Go's built-in debugging tools.
+```bash
+# Run with verbose logging
+./honeybee  # Built with log.Printf statements
+```
 
 ### Log Analysis
 ```bash
-tail -f logs/honeypot.log
+# Check logs (integrated with Go log package)
+tail -f /path/to/logs/honeypot.log
 ```
+
+## 🔒 Security Features
+
+### Production-Ready Enhancements
+- **Graceful Shutdown**: Proper signal handling for clean termination
+- **Configuration Management**: Secure loading of environment variables
+- **Middleware Separation**: Organized HTTP middleware for auth and security
+- **Error Handling**: Structured error responses and logging
+- **Database Initialization**: Configurable paths and WAL mode for performance
 
 ## 🤝 Contributing
 
@@ -343,10 +516,12 @@ tail -f logs/honeypot.log
 git clone <repository>
 cd honeybee
 go mod download
+go build -o honebee main.go
 ```
 
 ### Code Style
-- Go: Follow Go standard conventions and use gofmt
+- Go: Follow standard Go conventions and use `go fmt`
+  - Packages: `models`, `controllers`, `utils`, `middleware`
 - JavaScript: Use ESLint configuration
 - HTML/CSS: Maintain consistent formatting
 
@@ -361,9 +536,11 @@ This software is provided for educational and research purposes only. Users are 
 ---
 
 **Version**: 2.0 Enhanced (Go Edition)
-**Last Updated**: [Current Date]
-**Maintained By**: [Your Name or Original]
+**Last Updated**: 2024
+**Maintained By**: Go Refactored
 
 **Tech Stack**: Go with Gin web framework and GORM ORM
+
+**Remember**: A honeypot is only as good as the analysis of the data it collects. Use this tool responsibly to improve cybersecurity and protect legitimate users.
 
 Buy me a coffee: https://bio.link/mitexleo
