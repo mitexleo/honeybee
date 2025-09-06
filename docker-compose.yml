@@ -49,7 +49,7 @@ services:
       - caddy_config:/config
     networks:
       - honeypot_network
-    command: sh -c "/usr/local/bin/start-caddy.sh"
+
 networks:
   honeypot_network:
     driver: bridge
