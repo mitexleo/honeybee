@@ -1,4 +1,7 @@
-${DOMAIN} {
+# Caddyfile Example for Honeybee Honeypot
+# Copy this file to Caddyfile and replace example.com with your domain
+
+example.com {
     reverse_proxy honeypot:5000
     encode gzip
 
@@ -9,4 +12,9 @@ ${DOMAIN} {
         Referrer-Policy "strict-origin-when-cross-origin"
         Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'"
     }
+}
+
+# Redirect HTTP to HTTPS
+http://example.com {
+    redir https://example.com{uri} permanent
 }

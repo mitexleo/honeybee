@@ -1,8 +1,8 @@
 # Honeybee Honeypot Deployment Guide
 
-## Dynamic Domain Configuration
+## Simple Domain Configuration
 
-This guide explains how to deploy the Honeybee Honeypot with dynamic domain configuration using environment variables.
+This guide explains how to deploy the Honeybee Honeypot with a simple domain configuration approach.
 
 ### Prerequisites
 
@@ -10,14 +10,28 @@ This guide explains how to deploy the Honeybee Honeypot with dynamic domain conf
 - A domain name pointing to your server's IP address
 - Ports 80 and 443 open on your server
 
-### Environment Variables Setup
+### Quick Setup
 
-Create a `.env` file in the project root with the following variables:
+1. **Copy configuration files**:
+   ```bash
+   cp .env.example .env
+   cp Caddyfile.example Caddyfile
+   ```
 
+2. **Edit configuration files**:
+   - Update `.env` with your actual values
+   - Edit `Caddyfile` and replace `example.com` with your actual domain
+
+3. **Deploy the application**:
+   ```bash
+   docker compose up -d
+   ```
+
+### Configuration Files
+
+#### .env File Setup
+Edit the `.env` file with your actual values:
 ```bash
-# Required: Your public domain name
-DOMAIN=your-actual-domain.com
-
 # Server Configuration
 SERVER_HOST=0.0.0.0
 SERVER_PORT=5000
@@ -37,40 +51,46 @@ GEOIP_DB_PATH=/app/data/GeoLite2-City.mmdb
 # Log Management
 MAX_LOG_SIZE=10485760
 BACKUP_COUNT=5
+
+# Domain for CORS (used by the application)
+DOMAIN=your-actual-domain.com
 ```
 
-### Quick Deployment
+#### Caddyfile Setup
+Edit the `Caddyfile` and replace `example.com` with your actual domain:
+```bash
+your-actual-domain.com {
+    reverse_proxy honeypot:5000
+    encode gzip
 
-1. **Configure Environment**:
-   ```bash
-   cp .env.example .env
-   # Edit .env with your actual values
-   ```
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'"
+    }
+}
 
-2. **Start Services**:
-   ```bash
-   docker-compose up -d
-   ```
+# Redirect HTTP to HTTPS
+http://your-actual-domain.com {
+    redir https://your-actual-domain.com{uri} permanent
+}
+```
 
-3. **Verify Deployment**:
-   ```bash
-   docker-compose logs -f
-   ```
+### Docker Compose Services
 
-### Domain Configuration
+The deployment consists of two services:
 
-The system uses the `DOMAIN` environment variable to dynamically configure:
-
-- **Caddy Reverse Proxy**: Automatically sets up SSL with Let's Encrypt
-- **CORS Headers**: Configures allowed origins for cross-origin requests
-- **Security Headers**: Proper Content Security Policy for your domain
+1. **honeypot**: The main Go application serving the honeypot
+2. **caddy**: Reverse proxy handling SSL termination and security headers
 
 ### SSL Certificate Automation
 
 Caddy will automatically:
-- Obtain SSL certificates from Let's Encrypt
+- Obtain SSL certificates from Let's Encrypt for your domain
 - Renew certificates before expiration
-- Redirect HTTP to HTTPS
+- Handle HTTP to HTTPS redirects
 - Apply security headers
 
 ### Testing Your Deployment
@@ -94,19 +114,19 @@ Caddy will automatically:
 
 **View Logs**:
 ```bash
-docker-compose logs honeypot
-docker-compose logs caddy
+docker compose logs honeypot
+docker compose logs caddy
 ```
 
 **Restart Services**:
 ```bash
-docker-compose restart
+docker compose restart
 ```
 
 **Update Deployment**:
 ```bash
-docker-compose pull
-docker-compose up -d --build
+docker compose pull
+docker compose up -d --build
 ```
 
 ### Troubleshooting
@@ -118,24 +138,14 @@ docker-compose up -d --build
    - Check port 80 is accessible for ACME challenges
 
 2. **CORS Errors**:
-   - Verify `DOMAIN` environment variable is set correctly
+   - Verify `DOMAIN` environment variable is set correctly in `.env`
    - Check browser console for specific errors
 
 3. **Database Issues**:
    ```bash
-   docker-compose down -v
-   docker-compose up -d
+   docker compose down -v
+   docker compose up -d
    ```
-
-### Backup and Data Management
-
-**Database Backup**:
-```bash
-docker-compose exec honeypot cp /app/data/honeypot.db /app/data/honeypot.db.backup
-```
-
-**Export Data**:
-Access the admin dashboard at `https://your-domain.com/admin` and use the export features.
 
 ### Security Considerations
 
@@ -143,21 +153,15 @@ Access the admin dashboard at `https://your-domain.com/admin` and use the export
 - Use strong JWT secrets
 - Regularly update Docker images
 - Monitor access logs for suspicious activity
-- Consider firewall rules to restrict access if needed
 
-### Scaling Considerations
+### File Structure
+```
+honeybee/
+├── .env.example          # Environment variables template
+├── Caddyfile.example     # Caddy configuration template
+├── docker-compose.yml    # Docker services configuration
+├── Dockerfile           # Application container build
+└── ...                  # Other project files
+```
 
-For production deployments:
-- Add monitoring (Prometheus/Grafana)
-- Implement log aggregation
-- Set up automated backups
-- Consider database replication for high availability
-
-### Support
-
-For issues with this deployment method, check:
-- Docker logs: `docker-compose logs`
-- Caddy logs: `docker-compose logs caddy`
-- Application logs: `docker-compose logs honeypot`
-
-Ensure all environment variables are properly set and the domain DNS propagation is complete before reporting issues.
+This simple approach requires minimal configuration while providing full SSL automation and security features through Caddy.

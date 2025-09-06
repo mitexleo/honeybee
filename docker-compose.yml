@@ -39,13 +39,12 @@ services:
     image: caddy:2-alpine
     container_name: nextcloud_honeypot_caddy
     restart: unless-stopped
-    environment:
-      - DOMAIN=${DOMAIN:-localhost}
+
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      - ./start-caddy.sh:/usr/local/bin/start-caddy.sh:ro
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
     networks:
