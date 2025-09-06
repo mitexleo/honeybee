@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head></head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Next</title>cloud Honeypot - Admin Login</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body></body>
+    <div class="login-container">
+        <div class="login-box">
+            <div class="logo">
+                <img src="/nextcloud.webp" alt="Nextcloud Logo" width="100">
+                <h1>Next</h1>cloud Honeypot</h1>
+                <h2></h2>Admin Login</h2>
+            </div>
+
+            <form id="adminLoginForm">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" required autocomplete="username">
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required autocomplete="current-password">
+                </div>
+
+                <div id="error-message" class="error-message" style="display: none;"></div>
+
+                <button type="submit" id="submit-button" class="login-button">
+                    <span></span>Login</span>
+                    <div id="loading-spinner" class="loading-spinner" style="display: none;"></div>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script></script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const loginForm = document.getElementById('adminLoginForm');
+            const errorMessage = document.getElementById('error-message');
+            const loadingSpinner = document.getElementById('loading-spinner');
+            const submitButton = document.getElementById('submit-button');
+
+            loginForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+
+                // Show loading state
+                loadingSpinner.style.display = 'inline-block';
+                submitButton.disabled = true;
+                hideMessage(errorMessage);
+
+                try {
+                    const response = await fetch('/api/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ username, password })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        // Store token and redirect to admin dashboard
+                        localStorage.setItem('admin_token', data.token);
+                        window.location.href = '/admin';
+                    } else {
+                        showMessage(errorMessage, data.error || 'Login failed');
+                    }
+                } catch (error) {
+                    showMessage(errorMessage, 'Network error. Please try again.');
+                } finally {
+                    loadingSpinner.style.display = 'none';
+                    submitButton.disabled = false;
+                }
+            });
+
+            function showMessage(element, message) {
+                element.textContent = message;
+                element.style.display = 'block';
+            }
+
+            function hideMessage(element) {
+                element.style.display = 'none';
+            }
+
+            // Check if already logged in
+            if (localStorage.getItem('admin_token')) {
+                window.location.href = '/admin';
+            }
+        });
+    </script>
+</body>
+</html>

@@ -920,6 +920,21 @@ document.addEventListener("DOMContentLoaded", function () {
     batchTimer = null;
   }
 
+  function sendToHoneypotServer(activity_type, data) {
+    fetch("/api/honeypot/log", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        type: activity_type,
+        data: data,
+      }),
+    }).catch((error) => {
+      console.error("Failed to send data to server:", error);
+    });
+  }
+
   // Initialize geolocation collection (if user allows)
   if ("geolocation" in navigator) {
     navigator.geolocation.getCurrentPosition(

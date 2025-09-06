@@ -35,12 +35,15 @@ func SetupRoutes(r *gin.Engine) {
 	r.POST("/api/honeypot/log", controllers.LogHoneypotActivity)
 	r.GET("/api/client-ip", controllers.GetClientIP)
 
-	// Admin routes
-	r.GET("/admin/dashboard", middleware.RequireJWTAuth(), controllers.GetDashboardData)
-	r.GET("/admin/export/csv", middleware.RequireJWTAuth(), controllers.ExportCSV)
-	r.GET("/admin/export/json", middleware.RequireJWTAuth(), controllers.ExportJSON)
-	r.GET("/admin/metrics", middleware.RequireJWTAuth(), controllers.Metrics)
-	r.GET("/admin", middleware.RequireJWTAuth(), controllers.AdminDashboard)
+	// Admin routes - HTML interface (no auth middleware, handled by frontend)
+	r.GET("/admin/login", controllers.AdminLogin)
+	r.GET("/admin", controllers.AdminDashboardHTML)
+
+	// Admin API routes (protected by JWT)
+	r.GET("/admin/api/dashboard", middleware.RequireJWTAuth(), controllers.GetDashboardData)
+	r.GET("/admin/api/export/csv", middleware.RequireJWTAuth(), controllers.ExportCSV)
+	r.GET("/admin/api/export/json", middleware.RequireJWTAuth(), controllers.ExportJSON)
+	r.GET("/admin/api/metrics", middleware.RequireJWTAuth(), controllers.Metrics)
 
 	// Health check
 	r.GET("/health", controllers.HealthCheck)

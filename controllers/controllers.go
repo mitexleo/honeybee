@@ -49,6 +49,16 @@ func Register(c *gin.Context) {
 	c.File("./frontend/register.html")
 }
 
+// Admin login page
+func AdminLogin(c *gin.Context) {
+	c.File("./frontend/admin-login.html")
+}
+
+// Admin dashboard HTML
+func AdminDashboardHTML(c *gin.Context) {
+	c.File("./frontend/dashboard.html")
+}
+
 // Health check
 func HealthCheck(c *gin.Context) {
 	sqlDB, _ := models.DB.DB()
@@ -266,6 +276,44 @@ func GetDashboardData(c *gin.Context) {
 
 // Admin dashboard
 func AdminDashboard(c *gin.Context) {
+	// Check if this is an API request (has Authorization header)
+	authHeader := c.GetHeader("Authorization")
+	if authHeader != "" {
+		// API request - serve dashboard data
+		var stats struct {
+			TotalSessions  int
+			UniqueIPs      int
+			Countries      int
+			RecentSessions int
+			Sessions24h    int
+			TotalAttacks   int
+		}
+		models.DB.Raw(`
+			SELECT
+				COUNT(*) as total_sessions,
+				COUNT(DISTINCT ip_address) as unique_ips,
+				COUNT(DISTINCT country) as countries,
+				COUNT(CASE WHEN last_seen > datetime('now', '-1 hour') THEN 1 END) as recent_sessions,
+				COUNT(CASE WHEN last_seen > datetime('now', '-24 hours') THEN 1 END) as sessions_24h
+			FROM sessions
+		`).Scan(&stats)
+
+		var totalAttacks int
+		models.DB.Raw(`
+			SELECT
+				(SELECT COUNT(*) FROM login_attempts) +
+				(SELECT COUNT(*) FROM registration_attempts) as total_attacks
+		`).Scan(&totalAttacks)
+		stats.TotalAttacks = totalAttacks
+
+		c.JSON(http.StatusOK, gin.H{
+			"stats":     stats,
+			"timestamp": time.Now().UTC().Format(time.RFC3339),
+		})
+		return
+	}
+
+	// HTML request - serve the dashboard page
 	c.File("./frontend/dashboard.html")
 }
 
