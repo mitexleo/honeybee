@@ -1,10 +1,10 @@
 # Multi-stage Dockerfile for Nextcloud Honeypot (Go)
 
-# Builder stage with latest Go
-FROM golang:latest AS builder
+# Builder stage with specific Go version matching toolchain
+FROM golang:1.24.6-alpine AS builder
 
 # Install git and ca-certificates for dependencies
-RUN apt-get update && apt-get install -y git ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache git ca-certificates
 
 # Set working directory
 WORKDIR /app
@@ -24,9 +24,10 @@ COPY routes/ ./routes/
 COPY utils/ ./utils/
 COPY middleware/ ./middleware/
 
-# Build the binary
+# Build the binary without CGO for Alpine compatibility
 ENV GO111MODULE=on
-RUN CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -o honeypot main.go
+ENV CGO_ENABLED=0
+RUN go build -o honeypot main.go
 
 # Make sure binary is executable
 RUN chmod +x honeypot
@@ -34,11 +35,11 @@ RUN chmod +x honeypot
 # Minimal verification without execution
 RUN test -f honeypot && echo "Binary created successfully"
 
-# Production stage
-FROM alpine:latest
+# Production stage - use the same Alpine version as builder
+FROM alpine:3.21
 
-# Install ca-certificates, tzdata, curl, and SQLite runtime library for CGO
-RUN apk --no-cache add ca-certificates tzdata curl libc6-compat
+# Install ca-certificates and tzdata only
+RUN apk --no-cache add ca-certificates tzdata
 
 # Create non-root user
 RUN addgroup -g 1000 honeypot && \
@@ -66,9 +67,9 @@ USER honeypot
 # Expose port
 EXPOSE 5000
 
-# Health check
+# Health check (simple shell-based approach)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:5000/health || exit 1
+    CMD sh -c 'exec 3<>/dev/tcp/localhost/5000 && echo -e "GET /health HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n" >&3 && head -1 <&3 | grep -q "200"'
 
 # Environment variables with defaults
 ENV HONEYPOT_DB_PATH=data/honeypot.db \
