@@ -29,13 +29,13 @@ COPY middleware/ ./middleware/
 
 # Build the binary with static linking
 ENV GO111MODULE=on
-RUN CGO_ENABLED=0 GOOS=linux go build -mod=vendor -a -installsuffix cgo -o honeypot main.go
+RUN CGO_ENABLED=1 GOOS=linux go build -mod=vendor -a -installsuffix cgo -o honeypot main.go
 
 # Production stage
 FROM alpine:latest
 
-# Install ca-certificates, tzdata, and curl for health check
-RUN apk --no-cache add ca-certificates tzdata curl
+# Install ca-certificates, tzdata, curl, and gcc for CGO runtime
+RUN apk --no-cache add ca-certificates tzdata curl gcc
 
 # Create non-root user
 RUN addgroup -g 1000 honeypot && \
