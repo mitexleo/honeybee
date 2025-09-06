@@ -20,6 +20,7 @@ COPY vendor ./vendor
 
 # Copy source code
 COPY main.go ./
+COPY config/ ./config/
 COPY models/ ./models/
 COPY controllers/ ./controllers/
 COPY routes/ ./routes/
@@ -27,6 +28,7 @@ COPY utils/ ./utils/
 COPY middleware/ ./middleware/
 
 # Build the binary with static linking
+ENV GO111MODULE=on
 RUN CGO_ENABLED=0 GOOS=linux go build -mod=vendor -a -installsuffix cgo -o honeypot main.go
 
 # Production stage
