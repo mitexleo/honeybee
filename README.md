@@ -432,3 +432,11 @@ This software is provided for educational and research purposes only. The author
 **Remember**: This honeypot is a powerful tool for detecting malicious activity. Use it responsibly and in accordance with applicable laws and regulations. Always prioritize the security and privacy of legitimate users.
 
 For support and contributions, please see the GitHub repository issues and discussions sections.
+
+## ☕ Support This Project
+
+If you find this honeypot useful and would like to support its development, consider buying me a coffee!
+
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://bio.link/mitexleo)
+
+Your support helps maintain and improve this project for the cybersecurity community!
