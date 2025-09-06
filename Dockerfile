@@ -1,6 +1,6 @@
 # Multi-stage Dockerfile for Nextcloud Honeypot (Go)
 
-# Builder stage with Debian-based Go for better CGO compatibility
+# Builder stage with Debian-based Go for CGO compatibility
 FROM golang:1.24.6-bookworm AS builder
 
 # Install build dependencies
@@ -35,15 +35,15 @@ RUN chmod +x honeypot
 # Minimal verification without execution
 RUN test -f honeypot && echo "Binary created successfully"
 
-# Production stage - use Alpine for minimal footprint
-FROM alpine:3.21
+# Production stage - use Debian for compatibility
+FROM debian:bookworm-slim
 
-# Install ca-certificates, tzdata, and SQLite runtime dependencies
-RUN apk --no-cache add ca-certificates tzdata libc6-compat
+# Install runtime dependencies including curl for healthcheck
+RUN apt-get update && apt-get install -y ca-certificates tzdata curl && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
-RUN addgroup -g 1000 honeypot && \
-    adduser -D -s /bin/sh -u 1000 -G honeypot honeypot
+RUN addgroup --gid 1000 honeypot && \
+    adduser --disabled-password --shell /bin/sh --uid 1000 --ingroup honeypot honeypot
 
 # Set working directory
 WORKDIR /app
@@ -67,19 +67,18 @@ USER honeypot
 # Expose port
 EXPOSE 5000
 
-# Health check (simple shell-based approach)
+# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD sh -c 'exec 3<>/dev/tcp/localhost/5000 && echo -e "GET /health HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n" >&3 && head -1 <&3 | grep -q "200"'
+    CMD curl -f http://localhost:5000/health || exit 1
 
-# Environment variables with defaults
+# Environment variables with defaults (will be overridden by .env file or docker-compose)
 ENV HONEYPOT_DB_PATH=data/honeypot.db \
     HONEYPOT_LOG_FILE=honeypot.log \
-    ADMIN_USERNAME=admin \
-    ADMIN_PASSWORD=change_this_password \
-    JWT_SECRET=your_jwt_secret_key_here \
     SERVER_HOST=0.0.0.0 \
     SERVER_PORT=5000 \
-    GEOIP_DB_PATH=GeoLite2-City.mmdb
+    GEOIP_DB_PATH=GeoLite2-City.mmdb \
+    MAX_LOG_SIZE=10485760 \
+    BACKUP_COUNT=5
 
 # Run the binary
 CMD ["./honeypot"]
