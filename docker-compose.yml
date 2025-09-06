@@ -21,7 +21,8 @@ services:
       - honeypot_logs:/app/logs
       - ./GeoLite2-City.mmdb:/app/data/GeoLite2-City.mmdb:ro
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:${SERVER_PORT}/health"]
+      test:
+        ["CMD", "curl", "-f", "http://localhost:${SERVER_PORT:-5000}/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -44,9 +45,6 @@ services:
       - caddy_config:/config
     networks:
       - honeypot_network
-    depends_on:
-      - honeypot
-
 networks:
   honeypot_network:
     driver: bridge
