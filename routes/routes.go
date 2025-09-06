@@ -1,3 +1,4 @@
+// routes/routes.go
 package routes
 
 import (
@@ -8,10 +9,18 @@ import (
 )
 
 func SetupRoutes(r *gin.Engine) {
-	// Public routes
+	// Public routes for HTML pages
 	r.GET("/", controllers.Index)
 	r.GET("/register.html", controllers.Register)
-	r.GET("/health", controllers.HealthCheck)
+
+	// Static files for frontend (directly served at root paths as expected by HTML)
+	r.StaticFile("/styles.css", "./frontend/styles.css")
+	r.StaticFile("/script.js", "./frontend/script.js")
+	r.StaticFile("/nextcloud.webp", "./frontend/nextcloud.webp")
+	r.StaticFile("/register.js", "./frontend/register.js")
+	r.StaticFile("/dashboard.html", "./frontend/dashboard.html")
+
+	// API routes
 	r.POST("/api/login", controllers.Login)
 	r.POST("/api/honeypot/log", controllers.LogHoneypotActivity)
 	r.GET("/api/client-ip", controllers.GetClientIP)
@@ -23,6 +32,9 @@ func SetupRoutes(r *gin.Engine) {
 	r.GET("/admin/metrics", middleware.RequireJWTAuth(), controllers.Metrics)
 	r.GET("/admin", middleware.RequireJWTAuth(), controllers.AdminDashboard)
 
-	// Serve static files
+	// Health check
+	r.GET("/health", controllers.HealthCheck)
+
+	// Fallback static serving for any other frontend files
 	r.Static("/frontend", "./frontend")
 }
