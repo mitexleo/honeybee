@@ -257,6 +257,8 @@ def get_client_ip():
             ip = request.headers.get(header).split(',')[0].strip()
             # Validate IP address
             try:
+        app.logger.info(f"Request headers: {dict(request.headers)}")
+        app.logger.info(f"Request method: {request.method}")
                 ipaddress.ip_address(ip)
                 return ip
             except ValueError:
@@ -270,6 +272,8 @@ def get_geolocation(ip_address):
         return None, None, None, None
 
     try:
+        app.logger.info(f"Request headers: {dict(request.headers)}")
+        app.logger.info(f"Request method: {request.method}")
         # Skip private/local IP addresses
         ip_obj = ipaddress.ip_address(ip_address)
         if ip_obj.is_private or ip_obj.is_loopback:
@@ -328,6 +332,8 @@ def log_session(session_id, ip_address, user_agent):
     country, city, latitude, longitude = get_geolocation(ip_address)
 
     try:
+        app.logger.info(f"Request headers: {dict(request.headers)}")
+        app.logger.info(f"Request method: {request.method}")
         conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()
 
@@ -407,6 +413,8 @@ def register_script():
 def health_check():
     """Health check endpoint for monitoring."""
     try:
+        app.logger.info(f"Request headers: {dict(request.headers)}")
+        app.logger.info(f"Request method: {request.method}")
         # Test database connection
         conn = sqlite3.connect(DATABASE_PATH)
         conn.execute('SELECT 1;')
@@ -434,8 +442,10 @@ def log_honeypot_activity():
         return response
 
     try:
+        app.logger.info(f"Request headers: {dict(request.headers)}")
+        app.logger.info(f"Request method: {request.method}")
         # Validate content type
-        if not request.is_json:
+        # if not request.is_json:
             return jsonify({'error': 'Content-Type must be application/json'}), 400
 
         data = request.get_json()
@@ -486,6 +496,8 @@ def log_honeypot_activity():
 def log_login_attempt(data, ip_address):
     """Log login attempt with validation and sanitization."""
     try:
+        app.logger.info(f"Request headers: {dict(request.headers)}")
+        app.logger.info(f"Request method: {request.method}")
         conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()
 
@@ -542,6 +554,8 @@ def log_login_attempt(data, ip_address):
 def log_registration_attempt(data, ip_address):
     """Log registration attempt with validation and sanitization."""
     try:
+        app.logger.info(f"Request headers: {dict(request.headers)}")
+        app.logger.info(f"Request method: {request.method}")
         conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()
 
@@ -602,6 +616,8 @@ def log_registration_attempt(data, ip_address):
 def log_general_activity(session_id, activity_type, data, ip_address):
     """Log general activity with size limits."""
     try:
+        app.logger.info(f"Request headers: {dict(request.headers)}")
+        app.logger.info(f"Request method: {request.method}")
         conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()
 
@@ -626,6 +642,8 @@ def log_general_activity(session_id, activity_type, data, ip_address):
 def log_fingerprint(session_id, data, ip_address):
     """Log fingerprinting data."""
     try:
+        app.logger.info(f"Request headers: {dict(request.headers)}")
+        app.logger.info(f"Request method: {request.method}")
         conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()
 
@@ -661,6 +679,8 @@ def client_ip():
 def metrics():
     """Prometheus-style metrics endpoint."""
     try:
+        app.logger.info(f"Request headers: {dict(request.headers)}")
+        app.logger.info(f"Request method: {request.method}")
         conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()
 
@@ -715,6 +735,8 @@ def serve_static(filename):
         abort(404)
 
     try:
+        app.logger.info(f"Request headers: {dict(request.headers)}")
+        app.logger.info(f"Request method: {request.method}")
         if os.path.exists(filename) and os.path.isfile(filename):
             return send_from_directory('.', filename)
         else:
@@ -768,6 +790,8 @@ if __name__ == '__main__':
 
     # Production WSGI server recommendation
     try:
+        app.logger.info(f"Request headers: {dict(request.headers)}")
+        app.logger.info(f"Request method: {request.method}")
         print("💡 For production, run with: gunicorn -w 4 -b 0.0.0.0:5000 production_server:app")
     except ImportError:
         print("💡 Install gunicorn for production: pip install gunicorn")
