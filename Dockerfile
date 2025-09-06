@@ -35,6 +35,7 @@ COPY styles.css .
 COPY script.js .
 COPY register.js .
 COPY dashboard.html .
+COPY nextcloud.webp .
 
 # Create necessary directories
 RUN mkdir -p /app/data /app/logs /app/backups && \
