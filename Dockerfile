@@ -12,11 +12,8 @@ WORKDIR /app
 # Copy go.mod and go.sum first for caching
 COPY go.mod go.sum ./
 
-# Download and vendor dependencies
-RUN go mod download && go mod vendor
-
-# Copy vendor directory
-COPY vendor ./vendor
+# Download dependencies
+RUN go mod download
 
 # Copy source code
 COPY main.go ./
@@ -29,7 +26,7 @@ COPY middleware/ ./middleware/
 
 # Build the binary with static linking
 ENV GO111MODULE=on
-RUN CGO_ENABLED=1 GOOS=linux go build -mod=vendor -a -installsuffix cgo -o honeypot main.go
+RUN CGO_ENABLED=1 GOOS=linux go build -o honeypot main.go
 
 # Production stage
 FROM alpine:latest
