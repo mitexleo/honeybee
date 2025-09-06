@@ -752,27 +752,27 @@
                 const statsGrid = document.getElementById("stats-grid");
                 statsGrid.innerHTML = `
                 <div class="stat-card">
-                    <div class="stat-number">${stats.total_sessions || 0}</div>
+                    <div class="stat-number">${stats.TotalSessions || 0}</div>
                     <div class="stat-label">Total Sessions</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number">${stats.unique_ips || 0}</div>
+                    <div class="stat-number">${stats.UniqueIPs || 0}</div>
                     <div class="stat-label">Unique IPs</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number">${stats.countries || 0}</div>
+                    <div class="stat-number">${stats.Countries || 0}</div>
                     <div class="stat-label">Countries</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number">${stats.recent_sessions || 0}</div>
+                    <div class="stat-number">${stats.RecentSessions || 0}</div>
                     <div class="stat-label">Active (1hr)</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number">${stats.sessions_24h || 0}</div>
+                    <div class="stat-number">${stats.Sessions24h || 0}</div>
                     <div class="stat-label">Sessions (24hr)</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number">${stats.total_attacks || 0}</div>
+                    <div class="stat-number">${stats.TotalAttacks || 0}</div>
                     <div class="stat-label">Total Attacks</div>
                 </div>
             `;
@@ -787,23 +787,23 @@
                     row.className = "danger-row";
 
                     const threatLevel =
-                        ip.attempts > 50
+                        ip.Attempts > 50
                             ? "Critical"
-                            : ip.attempts > 20
+                            : ip.Attempts > 20
                               ? "High"
                               : "Medium";
                     const threatClass =
-                        ip.attempts > 50
+                        ip.Attempts > 50
                             ? "badge"
-                            : ip.attempts > 20
+                            : ip.Attempts > 20
                               ? "badge-warning"
                               : "badge-info";
 
                     row.innerHTML = `
-                    <td class="ip-address">${ip.ip_address}</td>
-                    <td><strong>${ip.attempts}</strong></td>
-                    <td>${ip.country || "Unknown"}</td>
-                    <td>${ip.city || "Unknown"}</td>
+                    <td class="ip-address">${ip.IPAddress}</td>
+                    <td><strong>${ip.Attempts}</strong></td>
+                    <td>${ip.Country || "Unknown"}</td>
+                    <td>${ip.City || "Unknown"}</td>
                     <td><span class="badge ${threatClass}">${threatLevel}</span></td>
                 `;
                     tbody.appendChild(row);
@@ -824,14 +824,14 @@
                     row.className = "danger-row";
 
                     row.innerHTML = `
-                    <td class="timestamp">${formatTimestamp(attempt.timestamp)}</td>
-                    <td class="ip-address">${attempt.ip_address}</td>
-                    <td class="username">${escapeHtml(attempt.username || "N/A")}</td>
-                    <td class="password">${escapeHtml(attempt.password || "N/A")}</td>
-                    <td class="truncate" title="${attempt.session_id}">${attempt.session_id}</td>
-                    <td><strong>${attempt.attempt_number}</strong></td>
-                    <td class="truncate" title="${escapeHtml(attempt.user_agent || "")}">${escapeHtml(truncate(attempt.user_agent || "Unknown", 50))}</td>
-                    <td>${attempt.country || "Unknown"}</td>
+                    <td class="timestamp">${formatTimestamp(attempt.Timestamp)}</td>
+                    <td class="ip-address">${attempt.IPAddress}</td>
+                    <td class="username">${escapeHtml(attempt.Username || "N/A")}</td>
+                    <td class="password">${escapeHtml(attempt.PasswordHash || "N/A")}</td>
+                    <td class="truncate" title="${attempt.SessionID}">${attempt.SessionID}</td>
+                    <td><strong>${attempt.AttemptNumber}</strong></td>
+                    <td class="truncate" title="${escapeHtml(attempt.UserAgent || "")}">${escapeHtml(truncate(attempt.UserAgent || "Unknown", 50))}</td>
+                    <td>${attempt.Country || "Unknown"}</td>
                 `;
                     tbody.appendChild(row);
                 });
@@ -851,14 +851,14 @@
                     row.className = "danger-row";
 
                     row.innerHTML = `
-                    <td class="timestamp">${formatTimestamp(attempt.timestamp)}</td>
-                    <td class="ip-address">${attempt.ip_address}</td>
-                    <td class="username">${escapeHtml(attempt.fullname || "N/A")}</td>
-                    <td class="username">${escapeHtml(attempt.email || "N/A")}</td>
-                    <td class="username">${escapeHtml(attempt.username || "N/A")}</td>
-                    <td class="password">${escapeHtml(attempt.password || "N/A")}</td>
-                    <td class="truncate" title="${attempt.session_id}">${attempt.session_id}</td>
-                    <td>${attempt.country || "Unknown"}</td>
+                    <td class="timestamp">${formatTimestamp(attempt.Timestamp)}</td>
+                    <td class="ip-address">${attempt.IPAddress}</td>
+                    <td class="username">${escapeHtml(attempt.Fullname || "N/A")}</td>
+                    <td class="username">${escapeHtml(attempt.Email || "N/A")}</td>
+                    <td class="username">${escapeHtml(attempt.Username || "N/A")}</td>
+                    <td class="password">${escapeHtml(attempt.PasswordHash || "N/A")}</td>
+                    <td class="truncate" title="${attempt.SessionID}">${attempt.SessionID}</td>
+                    <td>${attempt.Country || "Unknown"}</td>
                 `;
                     tbody.appendChild(row);
                 });
@@ -914,14 +914,35 @@
                     url += `?type=${type}`;
                 }
 
-                // Create a temporary link to trigger download
-                const link = document.createElement("a");
-                link.href = url;
-                link.setAttribute("download", "");
-                link.setAttribute("target", "_blank");
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+                // Use fetch with authorization header to download the file
+                fetch(url, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                })
+                    .then((response) => {
+                        if (!response.ok) {
+                            throw new Error(
+                                "Export failed: " + response.status,
+                            );
+                        }
+                        return response.blob();
+                    })
+                    .then((blob) => {
+                        const downloadUrl = window.URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.style.display = "none";
+                        a.href = downloadUrl;
+                        a.download = `honeypot_${type}_export.${format === "csv" ? "csv" : "json"}`;
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(downloadUrl);
+                        document.body.removeChild(a);
+                    })
+                    .catch((error) => {
+                        console.error("Export error:", error);
+                        alert("Export failed: " + error.message);
+                    });
             }
 
             // Cleanup interval on page unload
