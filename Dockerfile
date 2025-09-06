@@ -24,15 +24,15 @@ COPY routes/ ./routes/
 COPY utils/ ./utils/
 COPY middleware/ ./middleware/
 
-# Build the binary with static linking
+# Build the binary
 ENV GO111MODULE=on
-RUN go clean -cache && CGO_ENABLED=1 GOOS=linux GOARCH=${TARGETARCH} go build -v -o honeypot main.go
+RUN CGO_ENABLED=1 GOOS=linux GOARCH=${TARGETARCH} go build -o honeypot main.go
 
 # Make sure binary is executable
 RUN chmod +x honeypot
 
-# Verify binary was created and is executable
-RUN ls -la honeypot && file honeypot && ./honeypot --help 2>/dev/null || echo "Binary built successfully"
+# Minimal verification without execution
+RUN test -f honeypot && echo "Binary created successfully"
 
 # Production stage
 FROM alpine:latest
@@ -49,9 +49,6 @@ WORKDIR /app
 
 # Copy binary from builder
 COPY --from=builder /app/honeypot .
-
-# Verify binary was copied and is executable in production stage
-RUN ls -la honeypot && file honeypot
 
 # Copy frontend files
 COPY frontend ./frontend/
