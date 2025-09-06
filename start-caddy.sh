@@ -1,21 +1,22 @@
 #!/bin/sh
 
-# Caddy startup script with template processing
-# Reads DOMAIN environment variable and generates Caddyfile
+# Caddy startup script
+# Uses DOMAIN environment variable or falls back to localhost
 
 set -e
 
-# Check if DOMAIN environment variable is set
-if [ -z "$DOMAIN" ]; then
-    echo "ERROR: DOMAIN environment variable is not set"
-    echo "Please set DOMAIN in your .env file or docker-compose environment"
+# Use DOMAIN environment variable or fallback to localhost
+DOMAIN="${DOMAIN:-localhost}"
+echo "Starting Caddy with domain: $DOMAIN"
+
+# Validate domain format (basic check)
+if ! echo "$DOMAIN" | grep -qE '^[a-zA-Z0-9.-]+$'; then
+    echo "ERROR: Invalid domain format: $DOMAIN"
     exit 1
 fi
 
-echo "Starting Caddy with domain: $DOMAIN"
-
-# Create Caddyfile from template
-cat > /etc/caddy/Caddyfile << EOF
+# Create Caddyfile in /tmp (writable location)
+cat > /tmp/Caddyfile << EOF
 $DOMAIN {
     reverse_proxy honeypot:5000
     encode gzip
@@ -31,9 +32,21 @@ $DOMAIN {
 EOF
 
 echo "Generated Caddyfile:"
-echo "===================="
-cat /etc/caddy/Caddyfile
-echo "===================="
+cat /tmp/Caddyfile
+echo ""
+
+# Validate Caddyfile syntax before starting
+echo "Validating Caddyfile syntax..."
+if ! caddy validate --config /tmp/Caddyfile --adapter caddyfile 2>/dev/null; then
+    echo "ERROR: Caddyfile validation failed"
+    echo "Debug info - Caddyfile content:"
+    cat /tmp/Caddyfile
+    echo "=== END DEBUG ==="
+    exit 1
+fi
+
+echo "Caddyfile validation successful"
+echo "Starting Caddy server..."
 
 # Start Caddy with the generated configuration
-exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
+exec caddy run --config /tmp/Caddyfile --adapter caddyfile
