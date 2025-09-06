@@ -38,7 +38,7 @@ RUN test -f honeypot && echo "Binary created successfully"
 FROM alpine:latest
 
 # Install ca-certificates, tzdata, curl, and SQLite runtime library for CGO
-RUN apk --no-cache add ca-certificates tzdata curl
+RUN apk --no-cache add ca-certificates tzdata curl libc6-compat
 
 # Create non-root user
 RUN addgroup -g 1000 honeypot && \
