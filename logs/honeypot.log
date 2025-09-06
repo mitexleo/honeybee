@@ -4,3 +4,7 @@
 2025-09-06 12:34:50,077 INFO [server] Routes registered successfully
 2025-09-06 12:34:54,713 INFO [server] Routes registered successfully
 2025-09-06 12:34:54,734 WARNING [server] HONEYPOT login_attempt: test-session-123 from 127.0.0.1
+2025-09-06 12:37:57,815 INFO [server] Routes registered successfully
+2025-09-06 12:37:57,837 WARNING [server] HONEYPOT login_attempt: test-session-123 from 127.0.0.1
+2025-09-06 12:38:03,341 INFO [server] Routes registered successfully
+2025-09-06 12:38:03,363 WARNING [server] HONEYPOT login_attempt: browser-session-123 from 127.0.0.1

@@ -423,7 +423,7 @@ def health_check():
         }), 503
 
 @app.route('/api/honeypot/log', methods=['POST', 'OPTIONS'])
-@limiter.limit("20 per minute")
+@limiter.limit("20 per minute", methods=["POST"])
 def log_honeypot_activity():
     """Log honeypot activity with enhanced security."""
     # Handle CORS preflight requests
