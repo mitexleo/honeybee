@@ -5,4 +5,4 @@ your-domain.com {
     # Reverse proxy to honeypot backend
     reverse_proxy honeypot:5000
 }
-```
+
