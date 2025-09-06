@@ -1,4 +1,3 @@
-
 document.addEventListener("DOMContentLoaded", function () {
   const loginForm = document.getElementById("loginForm");
   const userInput = document.getElementById("user");
@@ -380,7 +379,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-    function startDevToolsDetection() {
+  function startDevToolsDetection() {
     let devtools = { open: false };
 
     // Method 1: Console detection
@@ -542,8 +541,8 @@ document.addEventListener("DOMContentLoaded", function () {
               attempts: attemptCount,
               timestamp: new Date().toISOString(),
               session_id: sessionId,
-        window.isSubmitting = false;
             });
+            window.isSubmitting = false;
           }, 2000);
         }
       },
@@ -892,34 +891,34 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-function scheduleBatchFlush() {
-  if (batchTimer) clearTimeout(batchTimer);
-  batchTimer = setTimeout(flushBatch, 1000);
-}
+  function scheduleBatchFlush() {
+    if (batchTimer) clearTimeout(batchTimer);
+    batchTimer = setTimeout(flushBatch, 1000);
+  }
 
-function flushBatch() {
-  if (activityBatch.length === 0) return;
+  function flushBatch() {
+    if (activityBatch.length === 0) return;
 
-  const batchToSend = [...activityBatch];
-  activityBatch = [];
+    const batchToSend = [...activityBatch];
+    activityBatch = [];
 
-  fetch("/api/honeypot/log", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      type: "batch",
-      data: batchToSend,
-    }),
-  }).catch((error) => {
-    console.error("Failed to log batch to server:", error);
-    // Optional: retry logic or store failed batches
-  });
+    fetch("/api/honeypot/log", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        type: "batch",
+        data: batchToSend,
+      }),
+    }).catch((error) => {
+      console.error("Failed to log batch to server:", error);
+      // Optional: retry logic or store failed batches
+    });
 
-  if (batchTimer) clearTimeout(batchTimer);
-  batchTimer = null;
-}
+    if (batchTimer) clearTimeout(batchTimer);
+    batchTimer = null;
+  }
 
   // Initialize geolocation collection (if user allows)
   if ("geolocation" in navigator) {
