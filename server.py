@@ -48,7 +48,7 @@ app.config['MAX_CONTENT_LENGTH'] = MAX_CONTENT_LENGTH
 # Initialize rate limiter
 limiter = Limiter(
     key_func=get_remote_address,
-    default_limits=[RATE_LIMIT],
+    default_limits=None,
     storage_uri="memory://"
 )
 limiter.init_app(app)
