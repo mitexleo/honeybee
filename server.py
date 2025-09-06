@@ -726,9 +726,6 @@ def serve_static(filename):
         abort(404)
 
 # Error handlers
-@app.route("/", defaults={"path": ""}, methods=["OPTIONS"])
-@app.route("/<path:path>", methods=["OPTIONS"])
-
 @app.errorhandler(404)
 def not_found(error):
     """Handle 404 errors."""
