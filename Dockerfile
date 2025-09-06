@@ -26,7 +26,7 @@ COPY middleware/ ./middleware/
 
 # Build the binary
 ENV GO111MODULE=on
-RUN CGO_ENABLED=1 GOOS=linux GOARCH=${TARGETARCH} go build -o honeypot main.go
+RUN CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -o honeypot main.go
 
 # Make sure binary is executable
 RUN chmod +x honeypot
