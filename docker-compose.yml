@@ -13,7 +13,7 @@ services:
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-change_this_password}
       - SECRET_KEY=${SECRET_KEY}
       - MAX_CONTENT_LENGTH=1048576
-      - RATE_LIMIT=100 per hour
+
       - MAX_LOG_SIZE=10485760
       - BACKUP_COUNT=5
       - FLASK_ENV=production
