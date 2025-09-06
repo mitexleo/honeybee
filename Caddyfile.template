@@ -1,4 +1,4 @@
-{{DOMAIN}} {
+${DOMAIN} {
     reverse_proxy honeypot:5000
     encode gzip
 
