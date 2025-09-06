@@ -49,13 +49,9 @@ func Register(c *gin.Context) {
 	c.File("./frontend/register.html")
 }
 
-// Admin login page
-func AdminLogin(c *gin.Context) {
-	c.File("./frontend/admin-login.html")
-}
-
 // Admin dashboard HTML
 func AdminDashboardHTML(c *gin.Context) {
+	// Serve dashboard directly - authentication is handled by JavaScript modal
 	c.File("./frontend/dashboard.html")
 }
 
@@ -431,23 +427,23 @@ func ExportJSON(c *gin.Context) {
 
 // Internal logging functions (not exported)
 func logLoginAttempt(data map[string]interface{}, ip string) bool {
-	password := data["password"].(string)
+	password := utils.SafeString(data["password"])
 	attempt := models.LoginAttempt{
-		SessionID:      utils.SanitizeInput(data["session_id"].(string), 100),
-		AttemptNumber:  int(data["attempt_number"].(float64)),
-		Username:       utils.SanitizeInput(data["username"].(string), 255),
+		SessionID:      utils.SanitizeInput(utils.SafeString(data["session_id"]), 100),
+		AttemptNumber:  int(utils.SafeFloat64(data["attempt_number"])),
+		Username:       utils.SanitizeInput(utils.SafeString(data["username"]), 255),
 		PasswordHash:   password,
-		RememberMe:     data["remember_me"].(bool),
+		RememberMe:     utils.SafeBool(data["remember_me"]),
 		IPAddress:      ip,
-		UserAgent:      utils.SanitizeInput(data["user_agent"].(string), 500),
-		Referrer:       utils.SanitizeInput(data["referrer"].(string), 500),
+		UserAgent:      utils.SanitizeInput(utils.SafeString(data["user_agent"]), 500),
+		Referrer:       utils.SanitizeInput(utils.SafeString(data["referrer"]), 500),
 		MouseMovements: jsonString(data["mouse_movements"]),
-		FormFillTime:   int(data["form_fill_time"].(float64)),
+		FormFillTime:   int(utils.SafeFloat64(data["form_fill_time"])),
 		ScreenInfo:     jsonString(data["screen_info"]),
 		BrowserInfo:    jsonString(data["browser_info"]),
-		Timezone:       utils.SanitizeInput(data["timezone"].(string), 50),
+		Timezone:       utils.SanitizeInput(utils.SafeString(data["timezone"]), 50),
 		Plugins:        jsonString(data["plugins"]),
-		DoNotTrack:     utils.SanitizeInput(data["doNotTrack"].(string), 10),
+		DoNotTrack:     utils.SanitizeInput(utils.SafeString(data["doNotTrack"]), 10),
 		Keystrokes:     jsonString(data["keystrokes"]),
 		FocusEvents:    jsonString(data["focus_events"]),
 	}
@@ -458,26 +454,26 @@ func logLoginAttempt(data map[string]interface{}, ip string) bool {
 }
 
 func logRegistrationAttempt(data map[string]interface{}, ip string) bool {
-	password := data["password"].(string)
+	password := utils.SafeString(data["password"])
 	attempt := models.RegistrationAttempt{
-		SessionID:            utils.SanitizeInput(data["session_id"].(string), 100),
-		AttemptNumber:        int(data["attempt_number"].(float64)),
-		Fullname:             utils.SanitizeInput(data["fullname"].(string), 255),
-		Email:                utils.SanitizeInput(data["email"].(string), 255),
-		Username:             utils.SanitizeInput(data["username"].(string), 255),
+		SessionID:            utils.SanitizeInput(utils.SafeString(data["session_id"]), 100),
+		AttemptNumber:        int(utils.SafeFloat64(data["attempt_number"])),
+		Fullname:             utils.SanitizeInput(utils.SafeString(data["fullname"]), 255),
+		Email:                utils.SanitizeInput(utils.SafeString(data["email"]), 255),
+		Username:             utils.SanitizeInput(utils.SafeString(data["username"]), 255),
 		PasswordHash:         password,
-		TermsAccepted:        data["terms_accepted"].(bool),
-		NewsletterSubscribed: data["newsletter_subscribed"].(bool),
+		TermsAccepted:        utils.SafeBool(data["terms_accepted"]),
+		NewsletterSubscribed: utils.SafeBool(data["newsletter_subscribed"]),
 		IPAddress:            ip,
-		UserAgent:            utils.SanitizeInput(data["user_agent"].(string), 500),
-		Referrer:             utils.SanitizeInput(data["referrer"].(string), 500),
+		UserAgent:            utils.SanitizeInput(utils.SafeString(data["user_agent"]), 500),
+		Referrer:             utils.SanitizeInput(utils.SafeString(data["referrer"]), 500),
 		MouseMovements:       jsonString(data["mouse_movements"]),
-		FormFillTime:         int(data["form_fill_time"].(float64)),
+		FormFillTime:         int(utils.SafeFloat64(data["form_fill_time"])),
 		ScreenInfo:           jsonString(data["screen_info"]),
 		BrowserInfo:          jsonString(data["browser_info"]),
-		Timezone:             utils.SanitizeInput(data["timezone"].(string), 50),
+		Timezone:             utils.SanitizeInput(utils.SafeString(data["timezone"]), 50),
 		Plugins:              jsonString(data["plugins"]),
-		DoNotTrack:           utils.SanitizeInput(data["doNotTrack"].(string), 10),
+		DoNotTrack:           utils.SanitizeInput(utils.SafeString(data["doNotTrack"]), 10),
 		Keystrokes:           jsonString(data["keystrokes"]),
 		FocusEvents:          jsonString(data["focus_events"]),
 	}

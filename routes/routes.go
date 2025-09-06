@@ -36,7 +36,6 @@ func SetupRoutes(r *gin.Engine) {
 	r.GET("/api/client-ip", controllers.GetClientIP)
 
 	// Admin routes - HTML interface (no auth middleware, handled by frontend)
-	r.GET("/admin/login", controllers.AdminLogin)
 	r.GET("/admin", controllers.AdminDashboardHTML)
 
 	// Admin API routes (protected by JWT)

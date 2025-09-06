@@ -19,6 +19,116 @@
                 color: #333;
             }
 
+            /* Login Modal Styles */
+            .login-modal {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.8);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 1000;
+            }
+
+            .login-modal.hidden {
+                display: none;
+            }
+
+            .login-box {
+                background: white;
+                padding: 40px;
+                border-radius: 12px;
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+                width: 100%;
+                max-width: 400px;
+                text-align: center;
+            }
+
+            .login-box h2 {
+                margin-bottom: 30px;
+                color: #0082c9;
+                font-size: 24px;
+            }
+
+            .form-group {
+                margin-bottom: 20px;
+                text-align: left;
+            }
+
+            .form-group label {
+                display: block;
+                margin-bottom: 8px;
+                font-weight: 600;
+                color: #555;
+            }
+
+            .form-group input {
+                width: 100%;
+                padding: 12px;
+                border: 2px solid #ddd;
+                border-radius: 6px;
+                font-size: 16px;
+                transition: border-color 0.3s;
+            }
+
+            .form-group input:focus {
+                outline: none;
+                border-color: #0082c9;
+            }
+
+            .login-button {
+                width: 100%;
+                padding: 14px;
+                background: linear-gradient(135deg, #0082c9 0%, #006ba8 100%);
+                color: white;
+                border: none;
+                border-radius: 6px;
+                font-size: 16px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: transform 0.2s;
+            }
+
+            .login-button:hover {
+                transform: translateY(-2px);
+            }
+
+            .login-button:disabled {
+                opacity: 0.7;
+                cursor: not-allowed;
+                transform: none;
+            }
+
+            .error-message {
+                color: #e74c3c;
+                background: #fdf2f2;
+                padding: 12px;
+                border-radius: 6px;
+                margin-bottom: 20px;
+                display: none;
+                font-size: 14px;
+            }
+
+            .loading-spinner {
+                display: inline-block;
+                width: 16px;
+                height: 16px;
+                border: 2px solid #ffffff;
+                border-radius: 50%;
+                border-top-color: transparent;
+                animation: spin 1s linear infinite;
+                margin-left: 10px;
+            }
+
+            @keyframes spin {
+                to {
+                    transform: rotate(360deg);
+                }
+            }
+
             .header {
                 background: linear-gradient(135deg, #0082c9 0%, #006ba8 100%);
                 color: white;
@@ -377,10 +487,56 @@
         </style>
     </head>
     <body>
+        <!-- Login Modal -->
+        <div id="loginModal" class="login-modal">
+            <div class="login-box">
+                <h2>Admin Login</h2>
+                <div
+                    id="error-message"
+                    class="error-message"
+                    style="display: none"
+                ></div>
+                <form id="adminLoginForm">
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <input
+                            type="text"
+                            id="username"
+                            name="username"
+                            required
+                            autocomplete="username"
+                        />
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            required
+                            autocomplete="current-password"
+                        />
+                    </div>
+                    <button
+                        type="submit"
+                        id="submit-button"
+                        class="login-button"
+                    >
+                        <span>Login</span>
+                        <div
+                            id="loading-spinner"
+                            class="loading-spinner"
+                            style="display: none"
+                        ></div>
+                    </button>
+                </form>
+            </div>
+        </div>
+
         <div class="header">
             <div class="container">
-                <h1>🍯 Nextcloud Honeypot Dashboard</h1>
-                <p>Real-time security monitoring and threat intelligence</p>
+                <h1>Nextcloud Honeypot Dashboard</h1>
+                <p>Monitor and analyze attack attempts in real-time</p>
             </div>
         </div>
 
@@ -544,14 +700,16 @@
 
             // Initialize dashboard
             document.addEventListener("DOMContentLoaded", function () {
-                // Check if user is authenticated
-                const token = localStorage.getItem("admin_token");
-                if (!token) {
-                    window.location.href = "/admin/login";
-                    return;
-                }
+                // Authentication is now handled by the login modal
+                // The modal will check auth status and load data if authenticated
 
-                loadDashboardData();
+                // Start loading data if already authenticated
+                const token =
+                    localStorage.getItem("admin_token") ||
+                    getCookie("admin_token");
+                if (token) {
+                    loadDashboardData();
+                }
                 // Auto-refresh every 30 seconds
                 refreshInterval = setInterval(loadDashboardData, 30000);
             });
@@ -772,6 +930,117 @@
                     clearInterval(refreshInterval);
                 }
             });
+
+            // Login Modal Functionality
+            const loginModal = document.getElementById("loginModal");
+            const loginForm = document.getElementById("adminLoginForm");
+            const errorMessage = document.getElementById("error-message");
+            const loadingSpinner = document.getElementById("loading-spinner");
+            const submitButton = document.getElementById("submit-button");
+            const usernameInput = document.getElementById("username");
+
+            // Show login modal on page load
+            loginModal.classList.remove("hidden");
+            usernameInput.focus();
+
+            loginForm.addEventListener("submit", async function (e) {
+                e.preventDefault();
+
+                const username = document.getElementById("username").value;
+                const password = document.getElementById("password").value;
+
+                // Show loading state
+                loadingSpinner.style.display = "inline-block";
+                submitButton.disabled = true;
+                hideMessage(errorMessage);
+
+                try {
+                    const response = await fetch("/api/login", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({ username, password }),
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        // Store token and hide modal
+                        localStorage.setItem("admin_token", data.token);
+                        document.cookie = `admin_token=${data.token}; max-age=86400; path=/`;
+                        loginModal.classList.add("hidden");
+
+                        // Load dashboard data
+                        loadDashboardData();
+                        refreshInterval = setInterval(loadDashboardData, 30000);
+                    } else {
+                        showMessage(errorMessage, data.error || "Login failed");
+                    }
+                } catch (error) {
+                    showMessage(
+                        errorMessage,
+                        "Network error. Please try again.",
+                    );
+                } finally {
+                    loadingSpinner.style.display = "none";
+                    submitButton.disabled = false;
+                }
+            });
+
+            function showMessage(element, message) {
+                element.textContent = message;
+                element.style.display = "block";
+            }
+
+            function hideMessage(element) {
+                element.style.display = "none";
+            }
+
+            // Check if already logged in (token in localStorage or cookie)
+            function checkAuth() {
+                const token =
+                    localStorage.getItem("admin_token") ||
+                    getCookie("admin_token");
+                if (token) {
+                    // Verify token is still valid
+                    fetch("/admin/api/dashboard", {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                    })
+                        .then((response) => {
+                            if (response.ok) {
+                                loginModal.classList.add("hidden");
+                                loadDashboardData();
+                                refreshInterval = setInterval(
+                                    loadDashboardData,
+                                    30000,
+                                );
+                            } else {
+                                // Token invalid, show login
+                                localStorage.removeItem("admin_token");
+                                document.cookie =
+                                    "admin_token=; max-age=0; path=/";
+                                loginModal.classList.remove("hidden");
+                            }
+                        })
+                        .catch(() => {
+                            loginModal.classList.remove("hidden");
+                        });
+                } else {
+                    loginModal.classList.remove("hidden");
+                }
+            }
+
+            function getCookie(name) {
+                const value = `; ${document.cookie}`;
+                const parts = value.split(`; ${name}=`);
+                if (parts.length === 2) return parts.pop().split(";").shift();
+            }
+
+            // Check authentication on page load
+            checkAuth();
         </script>
     </body>
 </html>

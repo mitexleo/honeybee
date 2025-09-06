@@ -123,3 +123,34 @@ func ValidatePassword(hashed, plain string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hashed), []byte(plain))
 	return err == nil
 }
+
+// Safe type assertion functions to prevent panic errors
+
+// SafeString safely extracts string from interface{}
+func SafeString(value interface{}) string {
+	if str, ok := value.(string); ok {
+		return str
+	}
+	return ""
+}
+
+// SafeFloat64 safely extracts float64 from interface{}
+func SafeFloat64(value interface{}) float64 {
+	if num, ok := value.(float64); ok {
+		return num
+	}
+	return 0
+}
+
+// SafeBool safely extracts bool from interface{}
+func SafeBool(value interface{}) bool {
+	if b, ok := value.(bool); ok {
+		return b
+	}
+	return false
+}
+
+// SafeInterface safely extracts interface{} from interface{}
+func SafeInterface(value interface{}) interface{} {
+	return value
+}
