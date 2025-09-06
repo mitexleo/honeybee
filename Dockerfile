@@ -1,7 +1,28 @@
-# Multi-stage Dockerfile for Nextcloud Honeypot
-FROM python:3.11-slim as base
+# Multi-stage Dockerfile for Nextcloud Honeypot (Go version)
 
-# Security updates and dependencies
+# Builder stage
+FROM golang:1.22 as builder
+
+# Set working directory
+WORKDIR /app
+
+# Copy go.mod and go.sum first for caching
+COPY go.mod go.sum ./
+
+# Download dependencies
+RUN go mod download
+
+# Copy source code
+COPY main.go ./
+COPY frontend/ ./frontend/
+
+# Build the binary
+RUN CGO_ENABLED=0 GOOS=linux go build -o honeybee main.go
+
+# Production stage
+FROM debian:bookworm-slim
+
+# Install curl for healthcheck and sqlite3 if needed
 RUN apt-get update && apt-get install -y \
     --no-install-recommends \
     curl \
@@ -14,38 +35,22 @@ RUN groupadd -r honeypot && useradd -r -g honeypot -u 1000 honeypot
 # Set working directory
 WORKDIR /app
 
-# Copy requirements first for better caching
-COPY requirements.txt .
+# Copy binary from builder
+COPY --from=builder /app/honeybee .
 
-# Install Python dependencies
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+# Copy frontend files
+COPY --from=builder /app/frontend ./frontend/
 
-# Production stage
-FROM base as production
-
-# Copy application code
-COPY server.py .
-COPY routes.py .
-COPY export_utils.py .
- 
-COPY index.html .
-COPY register.html .
-COPY styles.css .
-COPY script.js .
-COPY register.js .
-COPY dashboard.html .
-COPY nextcloud.webp .
+# Optional: Copy GeoIP database if present
+COPY GeoLite2-City.mmdb ./
 
 # Create necessary directories
 RUN mkdir -p /app/data /app/logs /app/backups && \
-    chown -R honeypot:honeypot /app
-
-# Set file permissions
-RUN chmod 755 /app && \
-    chmod 644 /app/*.html /app/*.css /app/*.js && \
-    chmod 755 /app/server.py && \
-    chmod 750 /app/data /app/logs /app/backups
+    chown -R honeypot:honeypot /app && \
+    chmod 755 /app && \
+    chmod 750 /app/data /app/logs /app/backups && \
+    chmod 644 /app/frontend/* && \
+    chmod +x /app/honeybee
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
@@ -58,10 +63,8 @@ USER honeypot
 EXPOSE 5000
 
 # Environment variables
-ENV FLASK_ENV=production \
-    PYTHONPATH=/app \
-    HONEYPOT_DB_PATH=/app/data/honeypot.db \
+ENV HONEYPOT_DB_PATH=/app/data/honeypot.db \
     HONEYPOT_LOG_FILE=honeypot.log
 
-# Run the application with gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--timeout", "60", "server:app"]
+# Run the binary
+CMD ["./honeybee"]

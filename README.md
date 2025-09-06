@@ -48,7 +48,7 @@ A simple honeypot designed to mimic a Nextcloud login and registration system to
 
 ### 🔒 Security Features
 - **Secure database** - SQLite with proper permissions (0600)
-- **Rate limiting** - Prevents dashboard abuse
+- **Rate limiting** - Prevents dashboard abuse (configurable)
 - **Basic authentication** - Admin dashboard protection
 - **Input sanitization** - XSS prevention on dashboard
 - **Logging rotation** - Automatic log file management
@@ -64,30 +64,17 @@ A simple honeypot designed to mimic a Nextcloud login and registration system to
 
 ```
 honeybee/
-├── config/
-│   ├── Caddyfile
-│   ├── Dockerfile
-│   ├── Dockerfile.nginx
-│   ├── docker-compose.yml
-│   ├── nginx.conf
-│   ├── requirements.txt
-│   └── setup.sh
-├── data/
-├── logs/
-├── src/
-│   ├── export_utils.py
-│   ├── routes.py
-│   ├── server.py
-│   └── start_honeypot.py
-├── tests/
-│   └── test_honeypot.py
-├── web/
+├── frontend/
 │   ├── dashboard.html
 │   ├── index.html
 │   ├── register.html
 │   ├── register.js
 │   ├── script.js
-│   └── styles.css
+│   ├── styles.css
+│   └── nextcloud.webp
+├── go.mod
+├── go.sum
+├── main.go
 ├── .gitignore
 ├── GeoLite2-City.mmdb
 ├── LICENSE
@@ -97,7 +84,7 @@ honeybee/
 ## 🛠️ Installation & Setup
 
 ### Prerequisites
-- Python 3.8+
+- Go 1.22+
 - Modern web browser
 - 2GB RAM minimum
 - 10GB storage for logs
@@ -110,9 +97,9 @@ honeybee/
    cd honeybee
    ```
 
-2. **Install Python dependencies:**
+2. **Download dependencies:**
    ```bash
-   pip install -r config/requirements.txt
+   go mod download
    ```
 
 3. **Optional: Download GeoIP Database**
@@ -126,17 +113,24 @@ honeybee/
    export ADMIN_PASSWORD="secure_password_here"
    export SECRET_KEY="your_secret_key_here"
    export GEOIP_DB_PATH="GeoLite2-City.mmdb"
+   export MAX_LOG_SIZE=10485760
+   export BACKUP_COUNT=5
    ```
 
-5. **Start the server:**
+5. **Build and start the server:**
    ```bash
-   python src/server.py
+   go build -o honeybee main.go
+   ./honeybee
+   ```
+   Or run directly:
+   ```bash
+   go run main.go
    ```
 
 6. **Access the honeypot:**
    - Main login page: http://localhost:5000
    - Registration page: http://localhost:5000/register.html
-   - Admin dashboard: http://localhost:5000/admin/dashboard
+   - Admin dashboard: http://localhost:5000/admin
 
 ## 🎯 Data Collection Capabilities
 
@@ -207,7 +201,7 @@ GET /api/export/json                # JSON format export
 ### Basic Monitoring
 
 1. **Start the server** and share the URL with suspected attackers
-2. **Monitor the admin dashboard** at `/admin/dashboard`
+2. **Monitor the admin dashboard** at `/admin`
 3. **Check logs** in the `logs/` directory
 4. **Export data** via `/api/export/json` endpoint
 
@@ -239,21 +233,17 @@ The honeypot logs extensive data for behavioral analysis:
 
 ### Development
 ```bash
-python src/server.py
+go run main.go
 # Runs on localhost:5000
 ```
 
-### Production with Docker
-```dockerfile
-FROM python:3.9-slim
-COPY . /app
-WORKDIR /app
-RUN pip install -r config/requirements.txt
-EXPOSE 5000
-CMD ["python", "src/server.py"]
+### Production
+```bash
+go build -o honeybee main.go
+./honeybee
 ```
 
-### Reverse Proxy Setup
+### Reverse Proxy Setup (Nginx example)
 ```nginx
 server {
     listen 80;
@@ -303,11 +293,10 @@ Timestamp,Session ID,Username,Password,IP Address,User Agent,Mouse Movements,Key
 HONEYPOT_DB_PATH=honeypot.db        # Database file path
 ADMIN_USERNAME=admin                # Dashboard username
 ADMIN_PASSWORD=secure123            # Dashboard password
-SECRET_KEY=random_secret_key        # Flask secret key
+SECRET_KEY=random_secret_key        # Secret key for hashing
 GEOIP_DB_PATH=GeoLite2-City.mmdb   # GeoIP database path
 MAX_LOG_SIZE=10485760               # Log file size limit
 BACKUP_COUNT=5                      # Log rotation count
-RATE_LIMIT="100 per hour"           # API rate limiting
 ```
 
 ### Database Schema
@@ -340,10 +329,7 @@ The system automatically creates tables for:
 4. **Export failures**: Ensure sufficient disk space
 
 ### Debug Mode
-```bash
-export FLASK_DEBUG=1
-python src/server.py
-```
+Run with verbose logging or use Go's built-in debugging tools.
 
 ### Log Analysis
 ```bash
@@ -356,12 +342,11 @@ tail -f logs/honeypot.log
 ```bash
 git clone <repository>
 cd honeybee
-pip install -r config/requirements.txt
-pip install -r requirements-dev.txt  # Development dependencies
+go mod download
 ```
 
 ### Code Style
-- Python: Follow PEP 8
+- Go: Follow Go standard conventions and use gofmt
 - JavaScript: Use ESLint configuration
 - HTML/CSS: Maintain consistent formatting
 
@@ -375,10 +360,10 @@ This software is provided for educational and research purposes only. Users are 
 
 ---
 
-**Version**: 2.0 Enhanced
-**Last Updated**: January 2024
-**Maintained By**: Mitex Leo
+**Version**: 2.0 Enhanced (Go Edition)
+**Last Updated**: [Current Date]
+**Maintained By**: [Your Name or Original]
 
-**Remember**: A honeypot is only as good as the analysis of the data it collects. Use this tool responsibly to improve cybersecurity and protect legitimate users.
+**Tech Stack**: Go with Gin web framework and GORM ORM
 
 Buy me a coffee: https://bio.link/mitexleo
